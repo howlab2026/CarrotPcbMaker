@@ -32,28 +32,37 @@ export default function ChatView() {
 
   // Initialize socket
   useEffect(() => {
-    socketRef.current = io();
+    const isStatic = window.location.hostname.includes('github.io');
+    if (!isStatic) {
+      try {
+        socketRef.current = io({ reconnectionAttempts: 3, timeout: 3000 });
+      } catch (e) {
+        console.warn('Socket connection error, running in local fallback mode:', e);
+      }
+    }
 
-    socketRef.current.on('new_channel_message', ({ channelId, message }) => {
-      setChannels(prev => prev.map(ch => {
-        if (ch.id === channelId) {
-          // Avoid duplicate
-          if (ch.messages.some(m => m.id === message.id)) return ch;
-          return { ...ch, messages: [...ch.messages, message] };
-        }
-        return ch;
-      }));
-    });
-
-    socketRef.current.on('new_dm_message', ({ threadId, message }) => {
-      setDmThread(prev => {
-        if (prev && prev.id === threadId) {
-          if (prev.messages.some(m => m.id === message.id)) return prev;
-          return { ...prev, messages: [...prev.messages, message] };
-        }
-        return prev;
+    if (socketRef.current) {
+      socketRef.current.on('new_channel_message', ({ channelId, message }) => {
+        setChannels(prev => prev.map(ch => {
+          if (ch.id === channelId) {
+            // Avoid duplicate
+            if (ch.messages.some(m => m.id === message.id)) return ch;
+            return { ...ch, messages: [...ch.messages, message] };
+          }
+          return ch;
+        }));
       });
-    });
+
+      socketRef.current.on('new_dm_message', ({ threadId, message }) => {
+        setDmThread(prev => {
+          if (prev && prev.id === threadId) {
+            if (prev.messages.some(m => m.id === message.id)) return prev;
+            return { ...prev, messages: [...prev.messages, message] };
+          }
+          return prev;
+        });
+      });
+    }
 
     return () => {
       if (socketRef.current) socketRef.current.disconnect();
@@ -127,7 +136,7 @@ export default function ChatView() {
     };
 
     if (chatType === 'channel') {
-      socketRef.current.emit('send_channel_message', {
+      socketRef.current?.emit('send_channel_message', {
         channelId: activeChannelId,
         message: messagePayload
       });
@@ -139,7 +148,7 @@ export default function ChatView() {
         return ch;
       }));
     } else if (chatType === 'dm' && selectedDmUser && dmThread) {
-      socketRef.current.emit('send_dm_message', {
+      socketRef.current?.emit('send_dm_message', {
         user1Id: currentUser.id,
         user2Id: selectedDmUser.id,
         threadId: dmThread.id,

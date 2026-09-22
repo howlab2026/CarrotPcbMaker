@@ -16,8 +16,13 @@ function MainApp() {
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
   const { currentUser } = useAuth();
 
+  const handleTabChange = (tabId) => {
+    setActiveTab(tabId);
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
+
   const handleProjectCreated = (newProject) => {
-    setActiveTab('workspace');
+    handleTabChange('workspace');
   };
 
   return (
@@ -25,7 +30,7 @@ function MainApp() {
       {/* Top Header */}
       <Header 
         activeTab={activeTab} 
-        setActiveTab={setActiveTab} 
+        setActiveTab={handleTabChange} 
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenNewProjectModal={() => setIsNewProjectModalOpen(true)}
       />
@@ -34,7 +39,7 @@ function MainApp() {
       <main className="main-content">
         {activeTab === 'dashboard' && (
           <Dashboard 
-            setActiveTab={setActiveTab} 
+            setActiveTab={handleTabChange} 
             onOpenNewProject={() => setIsNewProjectModalOpen(true)}
           />
         )}
@@ -48,7 +53,7 @@ function MainApp() {
         {activeTab === 'chat' && <ChatView />}
         {activeTab === 'admin' && (
           currentUser?.role === 'admin' ? (
-            <AdminPanel onNavigateToBoard={() => setActiveTab('board')} />
+            <AdminPanel onNavigateToBoard={() => handleTabChange('board')} />
           ) : (
             <div className="empty-state-box">
               <div className="empty-icon">🔒</div>

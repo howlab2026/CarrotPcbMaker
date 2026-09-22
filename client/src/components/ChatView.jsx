@@ -28,7 +28,7 @@ export default function ChatView() {
   const [imagePreview, setImagePreview] = useState('');
   
   const socketRef = useRef(null);
-  const messagesEndRef = useRef(null);
+  const messagesScrollRef = useRef(null);
 
   // Initialize socket
   useEffect(() => {
@@ -114,10 +114,17 @@ export default function ChatView() {
     fetchDm();
   }, [chatType, selectedDmUser, currentUser]);
 
-  // Scroll to bottom
+  // Scroll to bottom of message box ONLY (without scrolling window or affecting header)
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [channels, dmThread]);
+    if (messagesScrollRef.current) {
+      messagesScrollRef.current.scrollTop = messagesScrollRef.current.scrollHeight;
+    }
+  }, [channels, dmThread, activeChannelId, selectedDmUser]);
+
+  // Keep window scrolled to top when entering ChatView
+  useEffect(() => {
+    window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  }, []);
 
   const activeChannel = channels.find(c => c.id === activeChannelId);
 
@@ -296,8 +303,7 @@ export default function ChatView() {
             )}
           </div>
 
-          {/* Messages Area */}
-          <div className="chat-messages-scroll">
+          <div className="chat-messages-scroll" ref={messagesScrollRef}>
             {chatType === 'channel' ? (
               activeChannel?.messages?.map(msg => {
                 const isMe = msg.senderId === currentUser?.id;
@@ -350,7 +356,6 @@ export default function ChatView() {
                 );
               })
             )}
-            <div ref={messagesEndRef} />
           </div>
 
           {/* Image Upload Preview */}
@@ -404,11 +409,15 @@ export default function ChatView() {
       </div>
 
       <style>{`
+        .chat-container {
+          width: 100%;
+        }
         .chat-layout {
           display: grid;
           grid-template-columns: 320px 1fr;
-          height: calc(100vh - 160px);
-          min-height: 580px;
+          height: calc(100vh - 220px);
+          min-height: 520px;
+          max-height: 800px;
           background: #FFFFFF;
           border: 1px solid var(--border);
           border-radius: var(--radius-lg);

@@ -10,7 +10,9 @@ import {
   RefreshCw, 
   LogIn, 
   Sparkles,
-  PlusCircle
+  PlusCircle,
+  Calculator,
+  Eye
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
@@ -20,6 +22,8 @@ export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpe
   const navItems = [
     { id: 'dashboard', label: '홈', icon: Home },
     { id: 'workspace', label: '작업실 & 갤러리', icon: Layers },
+    { id: 'tools', label: '설계 계산기', icon: Calculator },
+    { id: 'gerber', label: '거버 뷰어', icon: Eye },
     { id: 'calendar', label: '일정 & 밋업', icon: Calendar },
     { id: 'board', label: '커뮤니티 게시판', icon: MessageSquare },
     { id: 'chat', label: '실시간 채팅', icon: MessagesSquare },
@@ -118,7 +122,7 @@ export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpe
           box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
         }
         .header-container {
-          max-width: 1280px;
+          max-width: 1400px;
           margin: 0 auto;
           padding: 0.85rem 1.25rem 0.55rem;
           display: flex;

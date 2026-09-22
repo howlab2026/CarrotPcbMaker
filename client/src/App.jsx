@@ -6,6 +6,8 @@ import Workspace from './components/Workspace';
 import CalendarView from './components/CalendarView';
 import BoardView from './components/BoardView';
 import ChatView from './components/ChatView';
+import PcbCalculator from './components/PcbCalculator';
+import GerberViewer from './components/GerberViewer';
 import AdminPanel from './components/AdminPanel';
 import AuthModal from './components/AuthModal';
 import NewProjectModal from './components/NewProjectModal';
@@ -48,6 +50,8 @@ function MainApp() {
             onOpenNewProject={() => setIsNewProjectModalOpen(true)}
           />
         )}
+        {activeTab === 'tools' && <PcbCalculator />}
+        {activeTab === 'gerber' && <GerberViewer />}
         {activeTab === 'calendar' && <CalendarView />}
         {activeTab === 'board' && <BoardView />}
         {activeTab === 'chat' && <ChatView />}

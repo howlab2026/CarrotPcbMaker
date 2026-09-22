@@ -1,7 +1,11 @@
 # 🥕 당근 PCB 메이커스 (Carrot PCB Makers)
 
-당근마켓 지역 기반의 **PCB 설계·하드웨어 메이커 모임**을 위한 올인원 커뮤니티 웹 플랫폼입니다.  
-회원 관리, 개인 작업실 보관함, 커뮤니티 공유 갤러리, 정기 밋업 일정 관리, 5종 테마 게시판, 그리고 Socket.io 기반 실시간 1:1 및 멀티 채널 채팅을 제공합니다.
+> 당근마켓 지역 기반의 **PCB 설계·하드웨어 메이커 모임**을 위한 올인원 커뮤니티 웹 플랫폼입니다.  
+> 회원 관리, 개인 작업실 보관함, 커뮤니티 공유 갤러리, 정기 밋업 일정 관리, 5종 테마 게시판, 그리고 실시간 1:1 및 멀티 채널 채팅을 제공합니다.
+
+### 🌐 [실시간 온라인 라이브 데모 바로가기](https://howlab2026.github.io/CarrotPcbMaker/)
+**URL**: https://howlab2026.github.io/CarrotPcbMaker/  
+*(GitHub Pages의 `gh-pages` 브랜치를 통해 정적 웹 호스팅 및 클라이언트 스토리지 백업 모드로 상시 서비스됩니다)*
 
 ---
 
@@ -65,6 +69,22 @@ npm run dev
 
 ---
 
+## 🌐 GitHub Pages 배포 안내
+
+GitHub Pages에 배포할 때는 아래 한 줄 명령어로 자동 빌드 및 `gh-pages` 브랜치에 배포됩니다:
+
+```bash
+npm run deploy
+```
+
+### GitHub 저장소 Pages 설정 (최초 1회 확인)
+1. GitHub 저장소 [Settings] -> [Pages] 메뉴로 이동합니다.
+2. **Build and deployment** 항목의 **Source**를 **Deploy from a branch**로 선택합니다.
+3. **Branch**를 `gh-pages` / `/ (root)` 로 지정하고 [Save]를 누릅니다.
+4. 배포 완료 후 `https://howlab2026.github.io/CarrotPcbMaker/` 에서 즉시 확인 가능합니다.
+
+---
+
 ## 👥 기본 데모 계정 (비밀번호: `123`)
 
 | 계정명 (ID) | 닉네임 | 역할 | 주요 관심 분야 |
@@ -78,3 +98,4 @@ npm run dev
 
 ## 📄 라이선스
 MIT License
+

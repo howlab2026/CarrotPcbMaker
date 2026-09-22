@@ -12,26 +12,27 @@ import {
   Sparkles,
   PlusCircle,
   Calculator,
-  Eye
+  Eye,
+  Package,
+  Wrench,
+  Flame
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpenNewProjectModal }) {
+export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpenNewProjectModal, onOpenProfileModal }) {
   const { currentUser } = useAuth();
 
   const navItems = [
     { id: 'dashboard', label: '홈', icon: Home },
-    { id: 'workspace', label: '작업실 & 갤러리', icon: Layers },
+    { id: 'workspace', label: '작업실', icon: Layers },
     { id: 'tools', label: '설계 계산기', icon: Calculator },
     { id: 'gerber', label: '거버 뷰어', icon: Eye },
+    { id: 'market', label: '나눔 & 공구', icon: Package },
+    { id: 'equipment', label: '공유 장비', icon: Wrench },
     { id: 'calendar', label: '일정 & 밋업', icon: Calendar },
-    { id: 'board', label: '커뮤니티 게시판', icon: MessageSquare },
+    { id: 'board', label: '커뮤니티', icon: MessageSquare },
     { id: 'chat', label: '실시간 채팅', icon: MessagesSquare },
   ];
-
-  if (currentUser?.role === 'admin') {
-    navItems.push({ id: 'admin', label: '관리자 화면', icon: ShieldCheck, isAdmin: true });
-  }
 
   return (
     <header className="header-bar">
@@ -58,18 +59,17 @@ export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpe
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`nav-btn ${isActive ? 'active' : ''} ${item.isAdmin ? 'admin-nav-btn' : ''}`}
+                  className={`nav-btn ${isActive ? 'active' : ''}`}
                 >
-                  <Icon size={26} />
+                  <Icon size={24} />
                   <span>{item.label}</span>
-                  {item.isAdmin && <span className="admin-pill">ADMIN</span>}
                 </button>
               );
             })}
           </nav>
         </div>
 
-        {/* Bottom Row: Right-aligned Actions ("작업 등록", "사용자 정보", "계정 전환") */}
+        {/* Bottom Row: Right-aligned Actions ("작업 등록", "사용자 정보", "계정 전환", "관리자 화면 ADMIN") */}
         <div className="header-bottom-row">
           <div className="header-actions">
             <button 
@@ -87,14 +87,28 @@ export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpe
                   src={currentUser.avatar} 
                   alt={currentUser.name} 
                   className="user-avatar"
+                  onClick={onOpenProfileModal}
+                  style={{ cursor: 'pointer' }}
+                  title="메이커 프로필 & 뱃지 도감 보기"
                   onError={(e) => { e.target.src = 'https://api.dicebear.com/7.x/bottts/svg?seed=fallback'; }}
                 />
-                <div className="user-info-text">
+                <div className="user-info-text" onClick={onOpenProfileModal} style={{ cursor: 'pointer' }}>
                   <span className="user-name">{currentUser.name?.replace(/\s*\(운영진\)\s*/g, '')}</span>
                   <span className={`user-role-badge ${currentUser.role}`}>
                     ({currentUser.role === 'admin' ? '운영진 👑' : '정회원 🌱'})
                   </span>
                 </div>
+
+                {/* Soldering Temperature Pill Button */}
+                <button 
+                  className="temp-pill-btn"
+                  onClick={onOpenProfileModal}
+                  title="당근 납땜 온도 & 뱃지 도감 열기"
+                >
+                  <Flame size={14} className="temp-flame-icon" />
+                  <span>{Number(currentUser.solderingTemp || 36.5).toFixed(1)}℃</span>
+                </button>
+
                 <button 
                   className="switch-account-btn"
                   onClick={onOpenAuthModal}
@@ -110,6 +124,17 @@ export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpe
                 <span>로그인 / 등록</span>
               </button>
             )}
+
+            {/* 맨 오른쪽: 관리자 화면 ADMIN 버튼 */}
+            <button
+              className={`admin-entry-btn ${activeTab === 'admin' ? 'active' : ''}`}
+              onClick={() => setActiveTab('admin')}
+              title="운영진 관리자 화면"
+            >
+              <ShieldCheck size={16} />
+              <span>관리자 화면</span>
+              <span className="admin-pill-tag">ADMIN</span>
+            </button>
           </div>
         </div>
       </div>
@@ -328,6 +353,32 @@ export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpe
         .user-role-badge.admin {
           color: #EA580C;
         }
+        .temp-pill-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.25rem;
+          background: linear-gradient(135deg, #FFF7ED 0%, #FFEDD5 100%);
+          color: #EA580C;
+          border: 1px solid #FED7AA;
+          padding: 0.25rem 0.6rem;
+          border-radius: 14px;
+          font-size: 0.78rem;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.15s ease;
+          box-shadow: 0 1px 3px rgba(234, 88, 12, 0.1);
+        }
+        .temp-pill-btn:hover {
+          background: #EA580C;
+          color: white;
+          border-color: #EA580C;
+        }
+        .temp-flame-icon {
+          color: #EA580C;
+        }
+        .temp-pill-btn:hover .temp-flame-icon {
+          color: white;
+        }
         .switch-account-btn {
           display: flex;
           align-items: center;
@@ -350,6 +401,47 @@ export default function Header({ activeTab, setActiveTab, onOpenAuthModal, onOpe
         .switch-account-btn:hover {
           border-color: var(--primary);
           color: var(--primary);
+        }
+        .admin-entry-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.45rem;
+          background: #F5F3FF;
+          color: #6D28D9;
+          border: 1.5px solid #DDD6FE;
+          padding: 0.45rem 0.85rem;
+          border-radius: 10px;
+          font-size: 0.82rem;
+          font-weight: 700;
+          white-space: nowrap;
+          word-break: keep-all;
+          flex-shrink: 0;
+          transition: all 0.15s ease;
+        }
+        .admin-entry-btn:hover {
+          background: #7C3AED;
+          color: white;
+          border-color: #7C3AED;
+        }
+        .admin-entry-btn.active {
+          background: #7C3AED;
+          color: white;
+          border-color: #6D28D9;
+          box-shadow: 0 2px 8px rgba(124, 58, 237, 0.25);
+        }
+        .admin-pill-tag {
+          background: #EDE9FE;
+          color: #6D28D9;
+          font-size: 0.68rem;
+          font-weight: 800;
+          padding: 0.1rem 0.35rem;
+          border-radius: 4px;
+          letter-spacing: 0.04em;
+        }
+        .admin-entry-btn:hover .admin-pill-tag,
+        .admin-entry-btn.active .admin-pill-tag {
+          background: rgba(255, 255, 255, 0.25);
+          color: white;
         }
         @media (max-width: 1080px) {
           .header-top-row {

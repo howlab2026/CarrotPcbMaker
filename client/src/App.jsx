@@ -8,6 +8,9 @@ import BoardView from './components/BoardView';
 import ChatView from './components/ChatView';
 import PcbCalculator from './components/PcbCalculator';
 import GerberViewer from './components/GerberViewer';
+import MarketView from './components/MarketView';
+import EquipmentView from './components/EquipmentView';
+import ProfileModal from './components/ProfileModal';
 import AdminPanel from './components/AdminPanel';
 import AuthModal from './components/AuthModal';
 import NewProjectModal from './components/NewProjectModal';
@@ -16,11 +19,18 @@ function MainApp() {
   const [activeTab, setActiveTab] = useState('dashboard');
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isNewProjectModalOpen, setIsNewProjectModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [targetDmUserId, setTargetDmUserId] = useState(null);
   const { currentUser } = useAuth();
 
   const handleTabChange = (tabId) => {
     setActiveTab(tabId);
     window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+  };
+
+  const handleNavigateToChat = (userId) => {
+    setTargetDmUserId(userId);
+    handleTabChange('chat');
   };
 
   const handleProjectCreated = (newProject) => {
@@ -35,6 +45,7 @@ function MainApp() {
         setActiveTab={handleTabChange} 
         onOpenAuthModal={() => setIsAuthModalOpen(true)}
         onOpenNewProjectModal={() => setIsNewProjectModalOpen(true)}
+        onOpenProfileModal={() => setIsProfileModalOpen(true)}
       />
 
       {/* Main Content Area */}
@@ -52,9 +63,11 @@ function MainApp() {
         )}
         {activeTab === 'tools' && <PcbCalculator />}
         {activeTab === 'gerber' && <GerberViewer />}
+        {activeTab === 'market' && <MarketView onNavigateToChat={handleNavigateToChat} />}
+        {activeTab === 'equipment' && <EquipmentView onNavigateToChat={handleNavigateToChat} />}
         {activeTab === 'calendar' && <CalendarView />}
         {activeTab === 'board' && <BoardView />}
-        {activeTab === 'chat' && <ChatView />}
+        {activeTab === 'chat' && <ChatView initialDmUserId={targetDmUserId} />}
         {activeTab === 'admin' && (
           currentUser?.role === 'admin' ? (
             <AdminPanel onNavigateToBoard={() => handleTabChange('board')} />
@@ -82,9 +95,13 @@ function MainApp() {
           </div>
           <div className="footer-links">
             <button onClick={() => setActiveTab('dashboard')}>홈</button>
-            <button onClick={() => setActiveTab('workspace')}>작업 보관함</button>
+            <button onClick={() => setActiveTab('workspace')}>작업실</button>
+            <button onClick={() => setActiveTab('tools')}>설계 계산기</button>
+            <button onClick={() => setActiveTab('gerber')}>거버 뷰어</button>
+            <button onClick={() => setActiveTab('market')}>나눔 & 공구</button>
+            <button onClick={() => setActiveTab('equipment')}>공유 장비</button>
             <button onClick={() => setActiveTab('calendar')}>모임 일정</button>
-            <button onClick={() => setActiveTab('board')}>게시판</button>
+            <button onClick={() => setActiveTab('board')}>커뮤니티</button>
             <button onClick={() => setActiveTab('chat')}>실시간 채팅</button>
             <button onClick={() => setIsAuthModalOpen(true)}>계정 전환 / 등록</button>
           </div>
@@ -104,6 +121,11 @@ function MainApp() {
         isOpen={isNewProjectModalOpen} 
         onClose={() => setIsNewProjectModalOpen(false)}
         onProjectCreated={handleProjectCreated}
+      />
+
+      <ProfileModal 
+        isOpen={isProfileModalOpen} 
+        onClose={() => setIsProfileModalOpen(false)} 
       />
 
       <style>{`

@@ -15,13 +15,23 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
-export default function ChatView() {
+export default function ChatView({ initialDmUserId }) {
   const { currentUser, users } = useAuth();
   const [chatType, setChatType] = useState('channel'); // 'channel' | 'dm'
   const [channels, setChannels] = useState([]);
   const [activeChannelId, setActiveChannelId] = useState('ch_general');
   const [selectedDmUser, setSelectedDmUser] = useState(null);
   const [dmThread, setDmThread] = useState(null);
+
+  useEffect(() => {
+    if (initialDmUserId && users?.length) {
+      const target = users.find(u => u.id === initialDmUserId);
+      if (target) {
+        setChatType('dm');
+        setSelectedDmUser(target);
+      }
+    }
+  }, [initialDmUserId, users]);
   
   const [inputText, setInputText] = useState('');
   const [isUploadingImage, setIsUploadingImage] = useState(false);

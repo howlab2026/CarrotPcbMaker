@@ -7,7 +7,30 @@ export function getLocalStore() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (raw) {
-      return JSON.parse(raw);
+      const parsed = JSON.parse(raw);
+      // Backfill missing top-level arrays
+      if (!parsed.marketItems) {
+        parsed.marketItems = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.marketItems || []));
+      }
+      if (!parsed.sharedEquipment) {
+        parsed.sharedEquipment = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.sharedEquipment || []));
+      }
+      // Check if post_sos_1 exists in parsed.posts
+      if (parsed.posts && !parsed.posts.some(p => p.id === 'post_sos_1')) {
+        const sosPost = INITIAL_MOCK_DATA.posts.find(p => p.id === 'post_sos_1');
+        if (sosPost) parsed.posts.unshift(JSON.parse(JSON.stringify(sosPost)));
+      }
+      // Backfill badges and solderingTemp to users
+      if (parsed.users) {
+        parsed.users.forEach(u => {
+          if (u.solderingTemp === undefined) {
+            const initU = INITIAL_MOCK_DATA.users.find(x => x.id === u.id);
+            u.solderingTemp = initU?.solderingTemp || 36.5;
+            u.badges = initU?.badges || ['sprout_maker'];
+          }
+        });
+      }
+      return parsed;
     }
   } catch (e) {
     console.warn('Failed to parse localStorage store:', e);
@@ -423,6 +446,144 @@ export function initMockApi() {
         saveLocalStore(store);
       }
       return jsonResponse(thread);
+    }
+
+    // Post Accept Solution (SOS): /api/posts/:id/accept-solution
+    const postSolutionMatch = pathname.match(/^\/api\/posts\/([^/]+)\/accept-solution$/);
+    if (postSolutionMatch && method === 'POST') {
+      const postId = postSolutionMatch[1];
+      const post = store.posts.find(p => p.id === postId);
+      if (!post) return jsonResponse({ error: 'Not found' }, 404);
+      const { commentId } = body || {};
+      const targetCmt = (post.comments || []).find(c => c.id === commentId);
+      if (!targetCmt) return jsonResponse({ error: 'Comment not found' }, 404);
+
+      post.isResolved = true;
+      post.acceptedCommentId = commentId;
+      targetCmt.isAccepted = true;
+
+      // Increase temperature for helper user (+1.5 deg) & award badge
+      if (targetCmt.userId) {
+        const helper = store.users.find(u => u.id === targetCmt.userId);
+        if (helper) {
+          helper.solderingTemp = Math.min(99.9, Number(((helper.solderingTemp || 36.5) + 1.5).toFixed(1)));
+          helper.badges = helper.badges || [];
+          if (!helper.badges.includes('sos_detective')) {
+            helper.badges.push('sos_detective');
+          }
+        }
+      }
+
+      saveLocalStore(store);
+      return jsonResponse(post);
+    }
+
+    // 8. Market (나눔 & 공구)
+    if (pathname === '/api/market' && method === 'GET') {
+      let list = store.marketItems || [];
+      if (query.type && query.type !== 'all') {
+        list = list.filter(m => m.type === query.type);
+      }
+      if (query.category && query.category !== 'all') {
+        list = list.filter(m => m.category === query.category);
+      }
+      if (query.status && query.status !== 'all') {
+        list = list.filter(m => m.status === query.status);
+      }
+      if (query.search) {
+        const q = query.search.toLowerCase();
+        list = list.filter(m => m.title.toLowerCase().includes(q) || m.description.toLowerCase().includes(q));
+      }
+      return jsonResponse(list);
+    }
+
+    if (pathname === '/api/market' && method === 'POST') {
+      const newItem = {
+        id: `mkt_${Date.now()}`,
+        ...body,
+        currentCount: 1,
+        participants: [body.authorId],
+        status: 'recruiting',
+        createdAt: new Date().toISOString()
+      };
+      store.marketItems = store.marketItems || [];
+      store.marketItems.unshift(newItem);
+
+      // Increase temperature for author (+0.5 deg)
+      const author = store.users.find(u => u.id === body.authorId);
+      if (author) {
+        author.solderingTemp = Math.min(99.9, Number(((author.solderingTemp || 36.5) + 0.5).toFixed(1)));
+        if (newItem.type === 'group_buy') {
+          author.badges = author.badges || [];
+          if (!author.badges.includes('group_buy_lead')) {
+            author.badges.push('group_buy_lead');
+          }
+        }
+      }
+
+      saveLocalStore(store);
+      return jsonResponse(newItem, 201);
+    }
+
+    const marketJoinMatch = pathname.match(/^\/api\/market\/([^/]+)\/join$/);
+    if (marketJoinMatch && method === 'POST') {
+      const itemId = marketJoinMatch[1];
+      const item = (store.marketItems || []).find(m => m.id === itemId);
+      if (!item) return jsonResponse({ error: 'Not found' }, 404);
+      const userId = body?.userId;
+      item.participants = item.participants || [];
+      const idx = item.participants.indexOf(userId);
+      if (idx === -1) {
+        if (item.currentCount >= item.targetCount) {
+          return jsonResponse({ error: '모집 인원이 마감되었습니다.' }, 400);
+        }
+        item.participants.push(userId);
+        item.currentCount = item.participants.length;
+        if (item.currentCount >= item.targetCount) {
+          item.status = 'completed';
+        }
+      } else {
+        item.participants.splice(idx, 1);
+        item.currentCount = item.participants.length;
+        if (item.currentCount < item.targetCount) {
+          item.status = 'recruiting';
+        }
+      }
+      saveLocalStore(store);
+      return jsonResponse(item);
+    }
+
+    // 9. Equipment (동네 공유 장비)
+    if (pathname === '/api/equipment' && method === 'GET') {
+      let list = store.sharedEquipment || [];
+      if (query.category && query.category !== 'all') {
+        list = list.filter(e => e.category === query.category);
+      }
+      if (query.search) {
+        const q = query.search.toLowerCase();
+        list = list.filter(e => e.title.toLowerCase().includes(q) || e.specs.toLowerCase().includes(q) || e.location.toLowerCase().includes(q));
+      }
+      return jsonResponse(list);
+    }
+
+    if (pathname === '/api/equipment' && method === 'POST') {
+      const newEquipment = {
+        id: `eq_${Date.now()}`,
+        ...body,
+        status: 'available',
+        createdAt: new Date().toISOString()
+      };
+      store.sharedEquipment = store.sharedEquipment || [];
+      store.sharedEquipment.unshift(newEquipment);
+
+      // Increase temperature for equipment sharer (+0.8 deg)
+      const owner = store.users.find(u => u.id === body.ownerId);
+      if (owner) {
+        owner.solderingTemp = Math.min(99.9, Number(((owner.solderingTemp || 36.5) + 0.8).toFixed(1)));
+      }
+
+      saveLocalStore(store);
+      return jsonResponse(newEquipment, 201);
     }
 
     // Default fallback

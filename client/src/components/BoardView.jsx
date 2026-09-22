@@ -15,13 +15,16 @@ import {
   Send,
   Upload,
   Shield,
-  HelpCircle
+  HelpCircle,
+  MapPin,
+  Flame,
+  Award
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 export default function BoardView() {
   const { currentUser } = useAuth();
-  const [boardType, setBoardType] = useState('notice'); // 'notice' | 'info' | 'general' | 'secret' | 'suggestion'
+  const [boardType, setBoardType] = useState('sos'); // 'sos' | 'notice' | 'info' | 'general' | 'secret' | 'suggestion'
   const [posts, setPosts] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedPost, setSelectedPost] = useState(null);
@@ -30,9 +33,10 @@ export default function BoardView() {
   // Write post form state
   const [writeTitle, setWriteTitle] = useState('');
   const [writeContent, setWriteContent] = useState('');
-  const [writeBoard, setWriteBoard] = useState('general');
+  const [writeBoard, setWriteBoard] = useState('sos');
   const [isPinned, setIsPinned] = useState(false);
   const [writeImages, setWriteImages] = useState([]);
+  const [pinMarkers, setPinMarkers] = useState([]);
   const [isUploading, setIsUploading] = useState(false);
 
   // Comment state
@@ -43,6 +47,7 @@ export default function BoardView() {
   const [suggestionStatus, setSuggestionStatus] = useState('검토중');
 
   const boards = [
+    { id: 'sos', label: '🚨 회로 SOS', desc: '타버린 기판, 쇼트, 미작동 버그! 핀포인트 사진 찍고 해결책 채택받기 (+1.5℃)' },
     { id: 'notice', label: '📢 공지사항', desc: '모임 정기 공지 및 필독 운영 안내' },
     { id: 'info', label: '💡 정보게시판', desc: 'KiCad 노하우, PCB 발주 가이드, 부품 소싱 팁' },
     { id: 'general', label: '💬 일반게시판', desc: '자유로운 하드웨어 잡담, Q&A, 작업 후기' },
@@ -150,6 +155,29 @@ export default function BoardView() {
     }
   };
 
+  const handleAcceptSolution = async (commentId) => {
+    if (!selectedPost || !currentUser) return;
+    if (selectedPost.authorId !== currentUser.id && currentUser.role !== 'admin') {
+      alert('질문 작성자 또는 관리자만 해결책을 채택할 수 있습니다.');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/posts/${selectedPost.id}/accept-solution`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ commentId })
+      });
+      if (res.ok) {
+        const updated = await res.json();
+        setSelectedPost(updated);
+        setPosts(prev => prev.map(p => p.id === updated.id ? updated : p));
+        alert('🎉 해결책이 성공적으로 채택되었습니다! 답변자에게 납땜 온도 +1.5℃와 "회로 SOS 명탐정 💡" 뱃지가 부여되었습니다.');
+      }
+    } catch (err) {
+      console.error('Accept solution error:', err);
+    }
+  };
+
   const handleWriteSubmit = async (e) => {
     e.preventDefault();
     if (!writeTitle.trim() || !writeContent.trim() || !currentUser) return;
@@ -166,6 +194,7 @@ export default function BoardView() {
           title: writeTitle.trim(),
           content: writeContent.trim(),
           images: writeImages,
+          pinMarkers: writeBoard === 'sos' ? pinMarkers : [],
           isPinned: currentUser.role === 'admin' ? isPinned : false
         })
       });
@@ -180,9 +209,20 @@ export default function BoardView() {
         setWriteTitle('');
         setWriteContent('');
         setWriteImages([]);
+        setPinMarkers([]);
       }
     } catch (err) {
       console.error('Submit post error:', err);
+    }
+  };
+
+  const handlePinClickOnImage = (e) => {
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = Math.round(((e.clientX - rect.left) / rect.width) * 100);
+    const y = Math.round(((e.clientY - rect.top) / rect.height) * 100);
+    const label = prompt('이 지점의 의심 증상/발열 부위 설명을 입력하세요:', `Pin ${pinMarkers.length + 1} 의심 지점`);
+    if (label && label.trim()) {
+      setPinMarkers(prev => [...prev, { id: `pin_${Date.now()}`, x, y, label: label.trim() }]);
     }
   };
 
@@ -302,6 +342,12 @@ export default function BoardView() {
                   <div className="col-status">
                     {post.isPinned ? (
                       <span className="badge badge-orange"><Pin size={11} /> 필독</span>
+                    ) : post.boardType === 'sos' ? (
+                      post.isResolved ? (
+                        <span className="badge badge-green">✓ 해결</span>
+                      ) : (
+                        <span className="badge badge-orange">🚨 SOS</span>
+                      )
                     ) : post.boardType === 'suggestion' ? (
                       <span className={`badge ${getSuggestionStatusBadge(post.status)}`}>
                         {post.status || '접수'}
@@ -315,6 +361,9 @@ export default function BoardView() {
 
                   <div className="col-title">
                     <span className="post-title-text">{post.title}</span>
+                    {post.pinMarkers?.length > 0 && (
+                      <span className="pin-indicator-badge">📍 핀 {post.pinMarkers.length}개</span>
+                    )}
                     {post.comments?.length > 0 && (
                       <span className="comment-badge-count">[{post.comments.length}]</span>
                     )}
@@ -353,6 +402,13 @@ export default function BoardView() {
                 <span className="badge badge-orange">
                   {boards.find(b => b.id === selectedPost.boardType)?.label}
                 </span>
+                {selectedPost.boardType === 'sos' && (
+                  selectedPost.isResolved ? (
+                    <span className="badge badge-green">✓ 채택 완료</span>
+                  ) : (
+                    <span className="badge badge-orange">진단 요청중</span>
+                  )
+                )}
                 {selectedPost.status && (
                   <span className={`badge ${getSuggestionStatusBadge(selectedPost.status)}`}>
                     상태: {selectedPost.status}
@@ -366,6 +422,21 @@ export default function BoardView() {
             </div>
 
             <div className="modal-body">
+              {/* SOS Alert Banner */}
+              {selectedPost.boardType === 'sos' && (
+                selectedPost.isResolved ? (
+                  <div className="sos-resolved-banner">
+                    <CheckCircle2 size={18} />
+                    <span>이 회로 버그는 해결책이 채택되어 수리 완료되었습니다! 🎉</span>
+                  </div>
+                ) : (
+                  <div className="sos-unresolved-banner">
+                    <AlertCircle size={18} />
+                    <span>도움 요청 중인 회로 버그입니다. 핀포인트를 확인하고 댓글로 해결책을 알려주세요! (채택 시 +1.5℃ 납땜온도)</span>
+                  </div>
+                )
+              )}
+
               <h2 className="post-view-title">{selectedPost.title}</h2>
 
               <div className="post-author-bar">
@@ -380,8 +451,43 @@ export default function BoardView() {
                 <span className="stat-item"><Heart size={14} /> {selectedPost.likes || 0}</span>
               </div>
 
-              {/* Images */}
-              {selectedPost.images && selectedPost.images.length > 0 && (
+              {/* SOS Pinpoint Interactive Viewer or Regular Images */}
+              {selectedPost.boardType === 'sos' && selectedPost.images?.[0] ? (
+                <div className="sos-pinpoint-viewer">
+                  <div className="pin-viewer-stage">
+                    <img src={selectedPost.images[0]} alt="Circuit SOS Board" className="pin-stage-image" />
+                    {(selectedPost.pinMarkers || []).map((pin, pIdx) => (
+                      <div 
+                        key={pin.id || pIdx} 
+                        className="interactive-pin-dot"
+                        style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
+                      >
+                        <span className="pin-num">{pIdx + 1}</span>
+                        <div className="pin-floating-tooltip">
+                          <strong>Pin {pIdx + 1}:</strong> {pin.label}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+
+                  {(selectedPost.pinMarkers || []).length > 0 && (
+                    <div className="pin-legend-box">
+                      <div className="legend-title">
+                        <MapPin size={14} />
+                        <span>등록된 버그 의심 핀포인트 ({selectedPost.pinMarkers.length}개):</span>
+                      </div>
+                      <div className="legend-list">
+                        {selectedPost.pinMarkers.map((pin, pIdx) => (
+                          <div key={pin.id || pIdx} className="legend-item">
+                            <span className="legend-badge">Pin {pIdx + 1}</span>
+                            <span className="legend-text">{pin.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ) : selectedPost.images && selectedPost.images.length > 0 ? (
                 <div className="post-images-grid">
                   {selectedPost.images.map((img, i) => (
                     <a key={i} href={img} target="_blank" rel="noreferrer" className="post-img-item">
@@ -389,7 +495,7 @@ export default function BoardView() {
                     </a>
                   ))}
                 </div>
-              )}
+              ) : null}
 
               {/* Content Body */}
               <div className="post-view-content">
@@ -450,19 +556,23 @@ export default function BoardView() {
                   onClick={() => handleLike(selectedPost.id)}
                 >
                   <Heart size={20} fill={selectedPost.likedUsers?.includes(currentUser?.id) ? '#FF6F0F' : 'none'} />
-                  <span>공감 & 좋아요 {selectedPost.likes || 0}</span>
+                  <span>공감 & 응원 {selectedPost.likes || 0}</span>
                 </button>
               </div>
 
               {/* Comments Section */}
               <div className="post-comments-area">
-                <h4>댓글 ({selectedPost.comments?.length || 0})</h4>
+                <h4>답변 & 댓글 ({selectedPost.comments?.length || 0})</h4>
 
                 <form onSubmit={handleAddComment} className="comment-form">
                   <input 
                     type="text" 
                     className="form-input" 
-                    placeholder={selectedPost.boardType === 'secret' ? '익명으로 댓글을 작성합니다...' : '댓글을 작성하세요...'}
+                    placeholder={
+                      selectedPost.boardType === 'sos'
+                        ? '버그 원인 진단 및 해결 팁을 작성하세요 (채택 시 +1.5℃ 납땜온도)...'
+                        : selectedPost.boardType === 'secret' ? '익명으로 댓글을 작성합니다...' : '댓글을 작성하세요...'
+                    }
                     value={commentText}
                     onChange={e => setCommentText(e.target.value)}
                   />
@@ -472,25 +582,52 @@ export default function BoardView() {
                 </form>
 
                 <div className="comments-list">
-                  {selectedPost.comments?.map(c => (
-                    <div key={c.id} className="comment-item">
-                      <img 
-                        src={c.userAvatar} 
-                        alt={c.userName} 
-                        className="comment-avatar"
-                        onError={(e) => { e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=cmt'; }}
-                      />
-                      <div className="comment-content">
-                        <div className="comment-meta">
-                          <span className="comment-author">{c.userName}</span>
-                          <span className="comment-time">
-                            {new Date(c.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                  {selectedPost.comments?.map(c => {
+                    const isAccepted = c.isAccepted || selectedPost.acceptedCommentId === c.id;
+                    const canAccept = selectedPost.boardType === 'sos' && 
+                                      !selectedPost.isResolved && 
+                                      (currentUser?.id === selectedPost.authorId || currentUser?.role === 'admin') &&
+                                      c.userId !== selectedPost.authorId;
+
+                    return (
+                      <div key={c.id} className={`comment-item ${isAccepted ? 'accepted-solution-card' : ''}`}>
+                        {isAccepted && (
+                          <div className="accepted-banner">
+                            <Award size={16} />
+                            <span>🏆 질문자가 채택한 해결책 솔루션 (+1.5℃ 납땜 온도 획득)</span>
+                          </div>
+                        )}
+                        <div className="comment-inner-row">
+                          <img 
+                            src={c.userAvatar} 
+                            alt={c.userName} 
+                            className="comment-avatar"
+                            onError={(e) => { e.target.src = 'https://api.dicebear.com/7.x/identicon/svg?seed=cmt'; }}
+                          />
+                          <div className="comment-content">
+                            <div className="comment-meta">
+                              <span className="comment-author">{c.userName}</span>
+                              <span className="comment-time">
+                                {new Date(c.createdAt).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                            <p className="comment-text">{c.text}</p>
+                            {canAccept && (
+                              <div className="solution-accept-box">
+                                <button 
+                                  className="accept-solve-btn"
+                                  onClick={() => handleAcceptSolution(c.id)}
+                                >
+                                  <Award size={14} />
+                                  <span>이 답변을 해결책으로 채택하기 (+1.5℃)</span>
+                                </button>
+                              </div>
+                            )}
+                          </div>
                         </div>
-                        <p className="comment-text">{c.text}</p>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>
@@ -516,6 +653,7 @@ export default function BoardView() {
                       value={writeBoard}
                       onChange={e => setWriteBoard(e.target.value)}
                     >
+                      <option value="sos">🚨 회로 SOS (핀포인트 마킹 & 채택)</option>
                       {currentUser?.role === 'admin' && (
                         <option value="notice">📢 공지사항</option>
                       )}
@@ -546,7 +684,7 @@ export default function BoardView() {
                   <input 
                     type="text" 
                     className="form-input" 
-                    placeholder="제목을 입력하세요"
+                    placeholder={writeBoard === 'sos' ? "예: [SOS] ESP32 5V 인가 시 LDO에서 연기가 납니다!" : "제목을 입력하세요"}
                     value={writeTitle}
                     onChange={e => setWriteTitle(e.target.value)}
                     required
@@ -557,8 +695,8 @@ export default function BoardView() {
                   <label className="form-label">내용 *</label>
                   <textarea 
                     className="form-textarea" 
-                    rows={8}
-                    placeholder="내용을 작성하세요. 회로 질문, 지식 나눔 등 자유롭게 작성할 수 있습니다."
+                    rows={6}
+                    placeholder={writeBoard === 'sos' ? "증상, 전원 입력 조건, 쇼트 및 발열 상태를 상세히 적어주세요." : "내용을 작성하세요."}
                     value={writeContent}
                     onChange={e => setWriteContent(e.target.value)}
                     required
@@ -566,7 +704,9 @@ export default function BoardView() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">이미지 첨부</label>
+                  <label className="form-label">
+                    {writeBoard === 'sos' ? '기판 사진 첨부 (필수 - 핀포인트 마킹용)' : '이미지 첨부'}
+                  </label>
                   <label className="file-upload-btn">
                     <Upload size={16} />
                     <span>이미지 업로드</span>
@@ -578,7 +718,51 @@ export default function BoardView() {
                       disabled={isUploading}
                     />
                   </label>
-                  {writeImages.length > 0 && (
+
+                  {/* If SOS board and image uploaded, show click-to-pin canvas */}
+                  {writeBoard === 'sos' && writeImages.length > 0 && (
+                    <div className="sos-write-pin-tool">
+                      <div className="pin-tool-hint">
+                        💡 <strong>사진의 이상 지점을 클릭</strong>하면 핀포인트 마킹(Pin 1, Pin 2...)을 추가할 수 있습니다.
+                      </div>
+                      <div className="pin-interactive-canvas" onClick={handlePinClickOnImage}>
+                        <img src={writeImages[0]} alt="SOS Uploaded Board" />
+                        {pinMarkers.map((pin, idx) => (
+                          <div 
+                            key={pin.id || idx} 
+                            className="interactive-pin-dot"
+                            style={{ left: `${pin.x}%`, top: `${pin.y}%` }}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (confirm(`Pin ${idx + 1} ("${pin.label}") 마킹을 삭제할까요?`)) {
+                                setPinMarkers(prev => prev.filter((_, i) => i !== idx));
+                              }
+                            }}
+                          >
+                            <span className="pin-num">{idx + 1}</span>
+                          </div>
+                        ))}
+                      </div>
+
+                      {pinMarkers.length > 0 && (
+                        <div className="pin-markers-summary">
+                          {pinMarkers.map((pin, idx) => (
+                            <div key={pin.id || idx} className="summary-pin-tag">
+                              <span>Pin {idx + 1}: {pin.label}</span>
+                              <button 
+                                type="button" 
+                                onClick={() => setPinMarkers(prev => prev.filter((_, i) => i !== idx))}
+                              >
+                                ✕
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  )}
+
+                  {writeBoard !== 'sos' && writeImages.length > 0 && (
                     <div className="uploaded-previews-grid">
                       {writeImages.map((img, idx) => (
                         <div key={idx} className="preview-item">
@@ -864,6 +1048,247 @@ export default function BoardView() {
           display: flex;
           flex-direction: column;
           gap: 1rem;
+        }
+        /* SOS & Pinpoint Styles */
+        .pin-indicator-badge {
+          background: #FEF2F2;
+          color: #DC2626;
+          border: 1px solid #FECACA;
+          font-size: 0.72rem;
+          font-weight: 800;
+          padding: 0.1rem 0.4rem;
+          border-radius: 4px;
+        }
+        .sos-resolved-banner {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: #ECFDF5;
+          color: #065F46;
+          border: 1.5px solid #A7F3D0;
+          border-radius: 10px;
+          padding: 0.75rem 1rem;
+          font-weight: 700;
+          font-size: 0.9rem;
+          margin-bottom: 1rem;
+        }
+        .sos-unresolved-banner {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: #FFF7ED;
+          color: #C2410C;
+          border: 1.5px solid #FDBA74;
+          border-radius: 10px;
+          padding: 0.75rem 1rem;
+          font-weight: 700;
+          font-size: 0.88rem;
+          margin-bottom: 1rem;
+        }
+        .sos-pinpoint-viewer {
+          display: flex;
+          flex-direction: column;
+          gap: 0.75rem;
+          margin: 0.75rem 0 1.25rem;
+        }
+        .pin-viewer-stage {
+          position: relative;
+          width: 100%;
+          max-height: 420px;
+          background: #0F172A;
+          border-radius: 12px;
+          overflow: hidden;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          border: 1px solid var(--border);
+        }
+        .pin-stage-image {
+          max-width: 100%;
+          max-height: 420px;
+          width: auto;
+          height: auto;
+          object-fit: contain;
+          display: block;
+        }
+        .interactive-pin-dot {
+          position: absolute;
+          transform: translate(-50%, -50%);
+          width: 26px;
+          height: 26px;
+          background: #EF4444;
+          color: white;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 0.78rem;
+          font-weight: 900;
+          box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 14px rgba(239, 68, 68, 0.8);
+          cursor: pointer;
+          z-index: 10;
+          transition: transform 0.2s ease;
+          animation: pinPulse 2s infinite ease-in-out;
+        }
+        .interactive-pin-dot:hover {
+          transform: translate(-50%, -50%) scale(1.3);
+          z-index: 20;
+        }
+        @keyframes pinPulse {
+          0%, 100% { box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.9), 0 0 10px rgba(239, 68, 68, 0.6); }
+          50% { box-shadow: 0 0 0 5px rgba(255, 255, 255, 1), 0 0 18px rgba(239, 68, 68, 1); }
+        }
+        .pin-floating-tooltip {
+          display: none;
+          position: absolute;
+          bottom: 115%;
+          left: 50%;
+          transform: translateX(-50%);
+          background: #0F172A;
+          color: white;
+          padding: 0.35rem 0.65rem;
+          border-radius: 6px;
+          font-size: 0.76rem;
+          white-space: nowrap;
+          pointer-events: none;
+          box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+          z-index: 30;
+        }
+        .interactive-pin-dot:hover .pin-floating-tooltip {
+          display: block;
+        }
+        .pin-legend-box {
+          background: #F8FAFC;
+          border: 1px solid var(--border);
+          border-radius: 10px;
+          padding: 0.75rem 1rem;
+        }
+        .legend-title {
+          font-size: 0.82rem;
+          font-weight: 800;
+          color: #475569;
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          margin-bottom: 0.4rem;
+        }
+        .legend-list {
+          display: flex;
+          flex-direction: column;
+          gap: 0.35rem;
+        }
+        .legend-item {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          font-size: 0.84rem;
+          color: #1E293B;
+        }
+        .legend-badge {
+          background: #EF4444;
+          color: white;
+          font-size: 0.72rem;
+          font-weight: 800;
+          padding: 0.1rem 0.45rem;
+          border-radius: 4px;
+        }
+        /* Comment Acceptance */
+        .accepted-solution-card {
+          border: 2px solid #10B981 !important;
+          background: #F0FDF4 !important;
+          border-radius: 10px;
+          overflow: hidden;
+        }
+        .accepted-banner {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          background: #10B981;
+          color: white;
+          padding: 0.35rem 0.85rem;
+          font-size: 0.78rem;
+          font-weight: 800;
+        }
+        .comment-inner-row {
+          display: flex;
+          gap: 0.75rem;
+          padding: 0.85rem;
+        }
+        .solution-accept-box {
+          margin-top: 0.5rem;
+        }
+        .accept-solve-btn {
+          display: flex;
+          align-items: center;
+          gap: 0.35rem;
+          background: #FFF7ED;
+          color: #EA580C;
+          border: 1.5px solid #FED7AA;
+          padding: 0.4rem 0.85rem;
+          border-radius: 8px;
+          font-size: 0.8rem;
+          font-weight: 800;
+          cursor: pointer;
+          transition: all 0.15s ease;
+        }
+        .accept-solve-btn:hover {
+          background: #EA580C;
+          color: white;
+          border-color: #EA580C;
+        }
+        /* Write pin tool */
+        .sos-write-pin-tool {
+          margin-top: 0.75rem;
+          display: flex;
+          flex-direction: column;
+          gap: 0.5rem;
+        }
+        .pin-tool-hint {
+          font-size: 0.82rem;
+          color: #C2410C;
+          background: #FFF7ED;
+          padding: 0.5rem 0.75rem;
+          border-radius: 6px;
+          border: 1px solid #FFEDD5;
+        }
+        .pin-interactive-canvas {
+          position: relative;
+          cursor: crosshair;
+          max-height: 280px;
+          background: #0F172A;
+          border-radius: 8px;
+          overflow: hidden;
+          display: inline-block;
+          border: 2px dashed #FDBA74;
+        }
+        .pin-interactive-canvas img {
+          max-height: 280px;
+          width: auto;
+          display: block;
+        }
+        .pin-markers-summary {
+          display: flex;
+          gap: 0.4rem;
+          flex-wrap: wrap;
+        }
+        .summary-pin-tag {
+          display: flex;
+          align-items: center;
+          gap: 0.4rem;
+          background: #F1F5F9;
+          border: 1px solid #CBD5E1;
+          padding: 0.25rem 0.55rem;
+          border-radius: 6px;
+          font-size: 0.78rem;
+          font-weight: 700;
+          color: #334155;
+        }
+        .summary-pin-tag button {
+          border: none;
+          background: transparent;
+          color: #DC2626;
+          font-weight: 800;
+          cursor: pointer;
         }
       `}</style>
     </div>

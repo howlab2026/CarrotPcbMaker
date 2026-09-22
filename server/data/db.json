@@ -186,6 +186,24 @@
   ],
   "posts": [
     {
+      "id": "post_1790089126717",
+      "boardType": "sos",
+      "authorId": "usr_rookie",
+      "authorName": "메이커꿈나무",
+      "authorAvatar": "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80",
+      "title": "[SOS] ESP32 [SOS] ESP32 5V LDO[SOS] ESP32 5V LDO!",
+      "content": "ESP32 board 5V input causing AMS1117-3.3 regulator to burn/smoke. Please help troubleshoot!",
+      "images": [
+        "/uploads/1790088510450_20260922_110441.png"
+      ],
+      "isPinned": false,
+      "views": 1,
+      "likes": 0,
+      "likedUsers": [],
+      "comments": [],
+      "createdAt": "2026-09-22T14:58:46.717Z"
+    },
+    {
       "id": "post_notif_1",
       "boardType": "notice",
       "authorId": "usr_admin",

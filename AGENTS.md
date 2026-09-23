@@ -1,0 +1,481 @@
+# 🤖 AGENTS.md — 당근 PCB 메이커스 에이전트 개발 가이드
+
+> 이 문서는 **어떤 AI 에이전트든** 이 프로젝트에 코드를 작성하거나 수정할 때 반드시 참조해야 할 가이드라인입니다.
+
+---
+
+## 📋 프로젝트 개요
+
+| 항목 | 내용 |
+| :--- | :--- |
+| **프로젝트명** | 당근 PCB 메이커스 (Carrot PCB Makers) |
+| **목적** | 당근마켓 지역 기반 PCB 설계·하드웨어 메이커 커뮤니티 올인원 웹 플랫폼 |
+| **GitHub 저장소** | `https://github.com/howlab2026/CarrotPcbMaker` |
+| **라이브 데모** | `https://howlab2026.github.io/CarrotPcbMaker/` |
+| **배포 방식** | GitHub Pages (`gh-pages` 브랜치), 정적 호스팅 + 클라이언트 스토리지 |
+
+---
+
+## 🏗️ 기술 스택
+
+| 레이어 | 기술 | 비고 |
+| :--- | :--- | :--- |
+| **프론트엔드 프레임워크** | React 18 | 함수형 컴포넌트 + Hooks |
+| **빌드 도구** | Vite | `client/vite.config.js` |
+| **아이콘** | Lucide React | `lucide-react` 패키지 |
+| **스타일링** | Vanilla CSS (인라인 `<style>` JSX 패턴) | 각 컴포넌트 내부에 CSS 포함 |
+| **상태 관리** | React useState + Context API | `context/AuthContext.jsx` |
+| **데이터 저장** | localStorage (클라이언트) / JSON store (서버) | `mockApi.js` + `mockData.js` |
+| **백엔드** | Node.js + Express + Socket.io | `server/index.js` |
+| **배포** | `gh-pages` npm 패키지 | `scripts/deploy.js` |
+
+---
+
+## 📁 프로젝트 디렉토리 구조
+
+```
+CarrotPcbMaker/
+├── AGENTS.md                    # ← 이 문서 (에이전트 가이드)
+├── README.md                    # 프로젝트 소개 및 실행 가이드
+├── package.json                 # 루트 스크립트 (deploy, dev 등)
+├── docs/                        # 📄 기획·개발 문서 (타임스탬프 포함)
+│   ├── planning/                # 기획 문서
+│   ├── implementation/          # 구현 상세 문서
+│   └── progress/                # 개발 진도 이력
+├── scripts/
+│   └── deploy.js                # GitHub Pages 배포 스크립트
+├── client/                      # 프론트엔드 (Vite + React)
+│   ├── index.html
+│   ├── vite.config.js
+│   ├── package.json
+│   ├── public/                  # 정적 에셋
+│   ├── dist/                    # 빌드 결과물 (gitignore)
+│   └── src/
+│       ├── main.jsx             # 엔트리 포인트
+│       ├── App.jsx              # 메인 앱 (라우팅, 모달 컨트롤러)
+│       ├── App.css              # 전역 CSS 변수 & 기본 스타일
+│       ├── index.css            # 추가 전역 스타일
+│       ├── mockApi.js           # fetch() 인터셉터 (정적 호스팅용 Mock API)
+│       ├── mockData.js          # 초기 시드 데이터 정의
+│       ├── context/
+│       │   └── AuthContext.jsx  # 인증 상태 Context
+│       ├── components/
+│       │   ├── Header.jsx       # 상단 네비게이션 (로고, 메뉴, 알림벨, 다크모드, 유저 위젯)
+│       │   ├── Dashboard.jsx    # 홈 대시보드
+│       │   ├── Workspace.jsx    # PCB 작업실 & 갤러리
+│       │   ├── SchematicNotepad.jsx # 회로 스케치 메모장 (신규)
+│       │   ├── BomManager.jsx   # BOM 관리 & 원가 계산기 (신규)
+│       │   ├── OrderTracker.jsx # 기판 발주 트래커 (신규)
+│       │   ├── PcbCalculator.jsx # PCB 설계 계산기
+│       │   ├── GerberViewer.jsx # 거버 파일 뷰어
+│       │   ├── MarketView.jsx   # 부품 나눔 & 해외 공구 장터
+│       │   ├── EquipmentView.jsx # 동네 공유 장비 대여
+│       │   ├── CalendarView.jsx # 일정 & 밋업
+│       │   ├── BoardView.jsx    # 6종 테마 게시판 + SOS 핀포인트
+│       │   ├── ChatView.jsx     # 실시간 채팅 (멀티채널 + DM)
+│       │   ├── ChallengeView.jsx # 주간 챌린지 & 콘테스트 (신규)
+│       │   ├── WikiView.jsx     # 메이커 지식 위키 (신규)
+│       │   ├── MentoringView.jsx # 메이커 멘토링 매칭 (신규)
+│       │   ├── StatsView.jsx    # 활동 히트맵 & 통계 분석 (신규)
+│       │   ├── NotificationCenter.jsx # 실시간 알림 센터 (신규)
+│       │   ├── ProfileModal.jsx # 납땜 온도, 6단계 등급 & 뱃지 도감
+│       │   ├── AdminPanel.jsx   # 운영진 관리자 대시보드
+│       │   ├── AuthModal.jsx    # 로그인/회원가입/계정전환 모달
+│       │   └── NewProjectModal.jsx # 새 작업물 등록 모달
+│       └── assets/
+└── server/                      # 백엔드 (Express + Socket.io)
+    ├── index.js                 # 서버 엔트리 (REST API + WebSocket)
+    ├── package.json
+    ├── data/                    # JSON 기반 영속 저장소
+    └── uploads/                 # 파일 업로드 디렉토리
+```
+
+---
+
+## ⚙️ 핵심 아키텍처 패턴
+
+### 1. 이중 API 구조 (Mock + Server)
+
+```
+┌──────────────────────────────────────────┐
+│  브라우저 fetch('/api/...')               │
+│       │                                  │
+│  ┌────▼────┐                             │
+│  │mockApi.js│ ── fetch 인터셉터           │
+│  │         │                             │
+│  │ isStaticHost?──┬── YES → localStorage │
+│  │                └── NO  → 실제 서버     │
+│  └─────────┘                             │
+└──────────────────────────────────────────┘
+```
+
+- **GitHub Pages 배포 시**: `mockApi.js`가 모든 `/api/` 요청을 인터셉트하여 `localStorage` 기반으로 CRUD 처리
+- **로컬 개발 시**: 실제 Express 서버로 요청을 포워딩하고, 서버 불가 시 자동 fallback
+
+### 2. 컴포넌트 스타일 패턴
+
+모든 컴포넌트는 **인라인 `<style>` JSX** 패턴을 사용합니다:
+
+```jsx
+export default function MyComponent() {
+  return (
+    <div className="my-component">
+      {/* JSX 내용 */}
+
+      <style>{`
+        .my-component {
+          /* CSS 정의 */
+        }
+      `}</style>
+    </div>
+  );
+}
+```
+
+> ⚠️ **주의**: 외부 CSS 파일이나 CSS-in-JS 라이브러리 (styled-components, emotion 등)를 사용하지 마세요.
+
+### 3. 뷰 전환 (라우팅)
+
+React Router를 사용하지 않습니다. `App.jsx`에서 `activeTab` state로 조건부 렌더링합니다:
+
+```jsx
+{activeTab === 'dashboard' && <Dashboard />}
+{activeTab === 'workspace' && <Workspace />}
+// ...
+```
+
+새 뷰를 추가할 때:
+1. `App.jsx`에 컴포넌트 import 추가
+2. `activeTab` 조건부 렌더링 추가
+3. `Header.jsx`의 `navItems` 배열에 메뉴 항목 추가 (또는 별도 버튼으로)
+
+### 4. 데이터 레이어
+
+- **초기 시드 데이터**: `mockData.js`의 `INITIAL_MOCK_DATA` 객체
+- **런타임 CRUD**: `mockApi.js`의 `getLocalStore()` / `saveLocalStore()` 함수
+- **마이그레이션**: `getLocalStore()` 내에서 신규 필드 backfill 로직 존재 (이전 버전과의 호환성)
+
+신규 데이터 엔티티 추가 시:
+1. `mockData.js`에 초기 데이터 배열 추가
+2. `mockApi.js`의 `getLocalStore()`에 backfill 로직 추가
+3. `mockApi.js`에 API 엔드포인트 핸들러 추가
+
+---
+
+## 🎨 디자인 시스템
+
+### CSS 변수 (Design Tokens)
+
+```css
+:root {
+  --primary: #FF6F0F;        /* 당근 오렌지 */
+  --primary-dark: #E85D00;
+  --primary-light: #FFF2E8;
+  --pcb-green: #10B981;      /* PCB 기판 그린 */
+  --border: #E2E8F0;
+  --bg: #F8FAFC;
+}
+```
+
+### UI 원칙
+- **색상**: 당근 오렌지(`#FF6F0F`) 기반 + PCB 그린(`#10B981`) 보조
+- **폰트**: 시스템 폰트 (Pretendard, -apple-system 등)
+- **모서리**: 8~16px border-radius
+- **그림자**: 미세한 box-shadow (0 1px 3px)
+- **반응형**: 1080px 브레이크포인트
+
+---
+
+## 📊 데이터 모델
+
+### Users
+```json
+{
+  "id": "usr_admin",
+  "username": "admin",
+  "password": "123",
+  "name": "당근마스터",
+  "avatar": "https://...",
+  "role": "admin | member | suspended",
+  "bio": "...",
+  "tags": ["KiCad", "고속신호"],
+  "solderingTemp": 42.5,
+  "badges": ["sprout_maker", "sos_detective", "group_buy_lead"],
+  "createdAt": "2026-01-15T00:00:00.000Z"
+}
+```
+
+### Projects (PCB 작업물)
+```json
+{
+  "id": "prj_1",
+  "userId": "usr_admin",
+  "title": "...",
+  "description": "...",
+  "layers": 4,
+  "mcu": "STM32F407",
+  "bom": "...",
+  "schematicUrl": "...",
+  "boardImageUrl": "...",
+  "isPublic": true,
+  "likes": 5,
+  "likedUsers": [],
+  "comments": [],
+  "createdAt": "2026-..."
+}
+```
+
+### Posts (게시판 글)
+```json
+{
+  "id": "post_1",
+  "boardType": "notice | info | general | secret | suggestion | sos",
+  "authorId": "usr_admin",
+  "authorName": "...",
+  "title": "...",
+  "content": "...",
+  "views": 10,
+  "likes": 3,
+  "likedUsers": [],
+  "comments": [],
+  "isPinned": false,
+  "status": "접수 | 검토중 | 반영완료",
+  "pinMarkers": [],
+  "isResolved": false,
+  "acceptedCommentId": null,
+  "createdAt": "2026-..."
+}
+```
+
+### Events (밋업)
+```json
+{
+  "id": "evt_1",
+  "title": "...",
+  "date": "2026-10-15",
+  "time": "19:00",
+  "location": "...",
+  "description": "...",
+  "maxAttendees": 20,
+  "attendees": [],
+  "status": "모집중"
+}
+```
+
+### MarketItems (나눔/공구)
+```json
+{
+  "id": "mkt_1",
+  "type": "sharing | group_buy",
+  "category": "passive | active | pcb | etc",
+  "title": "...",
+  "description": "...",
+  "targetCount": 10,
+  "currentCount": 3,
+  "participants": [],
+  "status": "recruiting | completed",
+  "authorId": "...",
+  "createdAt": "2026-..."
+}
+```
+
+### SharedEquipment (공유 장비)
+```json
+{
+  "id": "eq_1",
+  "title": "...",
+  "category": "soldering | measurement | manufacturing | tools",
+  "specs": "...",
+  "location": "서울 강남구",
+  "ownerId": "...",
+  "ownerName": "...",
+  "status": "available | rented",
+  "image": "...",
+  "createdAt": "2026-..."
+}
+```
+
+### Orders (기판 발주 트래커)
+```json
+{
+  "id": "ord_1",
+  "userId": "usr_admin",
+  "title": "당근 키패드 메인보드",
+  "manufacturer": "JLCPCB | PCBWay | ...",
+  "orderNumber": "JLC-...",
+  "layers": 4,
+  "quantity": 5,
+  "hasSmt": true,
+  "cost": 42.5,
+  "currency": "USD",
+  "status": "placed | production | smt | shipping | delivered",
+  "trackingNumber": "DHL-...",
+  "estimatedDelivery": "2026-09-28",
+  "notes": "..."
+}
+```
+
+### Challenges (주간 챌린지)
+```json
+{
+  "id": "chal_1",
+  "title": "...",
+  "description": "...",
+  "prize": "온도 +3℃, 🏆 뱃지",
+  "startDate": "2026-09-20",
+  "endDate": "2026-10-04",
+  "status": "active | upcoming | ended",
+  "submissions": [
+    {
+      "id": "sub_1",
+      "userId": "usr_artwork",
+      "userName": "아트웍요정",
+      "title": "...",
+      "image": "...",
+      "votes": 8,
+      "votedUsers": []
+    }
+  ]
+}
+```
+
+### BomItems (BOM 관리)
+```json
+{
+  "id": "bom_1",
+  "projectId": "prj_1",
+  "userId": "usr_artwork",
+  "title": "당근 키패드 BOM",
+  "items": [
+    { "partNumber": "RP2040", "name": "...", "quantity": 1, "unitPrice": 0.8, "currency": "USD", "supplier": "LCSC", "footprint": "QFN-56" }
+  ],
+  "exchangeRate": 1350
+}
+```
+
+### WikiArticles (지식 위키)
+```json
+{
+  "id": "wiki_1",
+  "title": "KiCad 8.0 DRC 해결법",
+  "category": "설계 기초 | 소자 선택 | 발주 가이드 | 납땜 팁 | 트러블슈팅",
+  "tags": ["KiCad", "DRC"],
+  "authorName": "당근마스터",
+  "views": 342,
+  "likes": 28,
+  "content": "## 마크다운 내용..."
+}
+```
+
+### MentoringSessions (멘토링 매칭)
+```json
+{
+  "id": "mentor_1",
+  "mentorId": "usr_admin",
+  "mentorName": "당근마스터",
+  "mentorTemp": 82.5,
+  "mentorTags": ["고속신호", "KiCad"],
+  "status": "recruiting | active | completed",
+  "title": "...",
+  "menteeId": "usr_rookie",
+  "menteeName": "메이커꿈나무",
+  "sessionsCount": 3
+}
+```
+
+---
+
+## 🌡️ 당근 납땜 온도 시스템
+
+커뮤니티 활동에 따라 유저의 `solderingTemp` 값이 변동합니다 (36.5℃ ~ 99.9℃):
+
+| 활동 | 온도 변화 |
+| :--- | :--- |
+| 마켓 아이템 등록 | +0.5℃ |
+| 공유 장비 등록 | +0.8℃ |
+| SOS 해결책 채택됨 | +1.5℃ |
+
+### 뱃지 시스템 (`badges` 배열)
+
+| 뱃지 ID | 이름 | 조건 |
+| :--- | :--- | :--- |
+| `sprout_maker` | 🌱 새싹 메이커 | 회원가입 시 자동 |
+| `sos_detective` | 🔍 SOS 탐정 | SOS 댓글이 채택됨 |
+| `group_buy_lead` | 📦 공구 대장 | 공구 아이템 등록 |
+
+---
+
+## 🚀 배포 절차
+
+### 자동 배포 (GitHub Pages)
+```bash
+cd <프로젝트 루트>
+npm run deploy
+```
+
+이 명령은 `scripts/deploy.js`를 실행하여:
+1. `client/` 디렉토리에서 `npm run build` 실행
+2. `client/dist/` 결과물을 `gh-pages` 브랜치에 자동 push
+
+### 주의사항
+- **배포는 사용자가 명시적으로 요청했을 때만** 수행하세요.
+- `vite.config.js`의 `base` 설정이 `/CarrotPcbMaker/`로 되어 있어야 합니다.
+- 빌드 환경에서 `isStaticHost`가 `true`로 감지되어 mockApi가 자동 활성화됩니다.
+
+---
+
+## 📝 문서화 컨벤션
+
+### `docs/` 폴더 구조
+```
+docs/
+├── planning/           # 기획 문서
+│   └── <topic>_YYYYMMDD_HHMM.md
+├── implementation/     # 구현 상세
+│   └── <topic>_YYYYMMDD_HHMM.md
+└── progress/           # 개발 진도 이력
+    └── progress_report_YYYYMMDD_HHMM.md
+```
+
+### 파일명 규칙
+- **형식**: `<topic_snake_case>_YYYYMMDD_HHMM.md`
+- **예시**: `feature_planning_v2_20260923_1100.md`
+- 주제명이 먼저 오고, 날짜와 시간이 **파일명 뒤**에 붙습니다.
+- 모든 문서에 날짜와 시간을 포함하여 **개발 이력이 누적**되도록 합니다.
+- 같은 주제의 업데이트 시 **새 파일을 생성**하여 이력을 보존합니다.
+
+---
+
+## ⚠️ 에이전트 작업 시 필수 수칙
+
+1. **배포 금지**: 사용자가 명시적으로 "배포해"라고 요청하기 전까지 GitHub에 push/deploy 하지 마세요.
+2. **스타일 패턴 유지**: 인라인 `<style>` JSX 패턴을 깨뜨리지 마세요. 외부 CSS 파일이나 CSS-in-JS를 도입하지 마세요.
+3. **데이터 마이그레이션**: 새로운 데이터 필드 추가 시 `getLocalStore()`에 backfill 로직을 반드시 추가하세요.
+4. **한글 우선**: UI 텍스트, 주석, 문서 모두 한국어를 기본으로 합니다.
+5. **기존 코드 보존**: 관련 없는 기존 코드, 주석, 스타일을 삭제하지 마세요.
+6. **문서 업데이트**: 기능 추가/변경 시 `docs/` 폴더에 관련 문서를 생성하세요 (타임스탬프 포함).
+7. **React Router 미사용**: 라우팅은 `activeTab` state 기반입니다.
+8. **Font Awesome / Tailwind 미사용**: 아이콘은 `lucide-react`만 사용합니다.
+
+---
+
+## 🔧 로컬 개발 환경 설정
+
+```bash
+# 프론트엔드만 (Mock API 모드)
+cd client
+npm install
+npm run dev     # → http://localhost:5173
+
+# 풀스택 (Express + Socket.io)
+cd server
+npm install
+node index.js   # → http://localhost:5000
+
+cd client
+npm run dev     # → http://localhost:5173 (API 요청을 서버로 프록시)
+```
+
+---
+
+*최종 업데이트: 2026-09-23*

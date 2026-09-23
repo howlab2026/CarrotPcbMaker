@@ -14,7 +14,7 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { BADGES_METADATA } from '../mockData';
+import { BADGES_METADATA, LEVEL_SYSTEM, getUserLevel } from '../mockData';
 
 export default function ProfileModal({ isOpen, onClose }) {
   const { currentUser } = useAuth();
@@ -27,15 +27,7 @@ export default function ProfileModal({ isOpen, onClose }) {
   const maxTemp = 99.9;
   const tempPercent = Math.min(100, Math.max(0, ((userTemp - minTemp) / (maxTemp - minTemp)) * 100));
 
-  const getTempLevelInfo = (temp) => {
-    if (temp >= 80) return { title: '👑 하드웨어의 신', desc: '모든 회로와 기판을 통달한 당근 최고 장인', color: '#DC2626' };
-    if (temp >= 60) return { title: '🔥 인두기 장인', desc: '고난도 BGA/QFN 및 다층 기판을 능숙히 제작', color: '#EA580C' };
-    if (temp >= 45) return { title: '🛠️ 열정 땜쟁이', desc: '활발한 나눔과 활발한 기판 발주를 이어가는 메이커', color: '#F59E0B' };
-    if (temp >= 38) return { title: '⚡ 회로 탐험가', desc: '기판 자작의 참맛을 알아가고 있는 메이커', color: '#10B981' };
-    return { title: '🌱 새싹 메이커', desc: '당근 PCB 모임에 첫 발을 내딛은 성장형 메이커', color: '#059669' };
-  };
-
-  const levelInfo = getTempLevelInfo(userTemp);
+  const levelInfo = getUserLevel(userTemp);
   const userBadges = currentUser.badges || ['sprout_maker'];
 
   return (
@@ -132,6 +124,28 @@ export default function ProfileModal({ isOpen, onClose }) {
                 <span className="boost-badge">+0.5℃</span>
                 <span className="boost-desc">☕ 정기 오프라인 납땜 워크숍 참석</span>
               </div>
+            </div>
+          </div>
+
+          {/* 6단계 메이커 등급 체계 */}
+          <div className="levels-tier-section">
+            <h4 className="guide-title">
+              <Award size={16} /> 당근 PCB 메이커스 6단계 등급 체계
+            </h4>
+            <div className="levels-tier-grid">
+              {LEVEL_SYSTEM.map(lvl => {
+                const isCurrent = levelInfo.level === lvl.level;
+                return (
+                  <div key={lvl.level} className={`level-tier-pill ${isCurrent ? 'current' : ''}`}>
+                    <span className="lvl-icon">{lvl.icon}</span>
+                    <div className="lvl-info">
+                      <span className="lvl-name">Lv.{lvl.level} {lvl.title.replace(/^[^ ]+ /, '')}</span>
+                      <span className="lvl-range">{lvl.minTemp} ~ {lvl.maxTemp}℃</span>
+                    </div>
+                    {isCurrent && <span className="lvl-now-badge">현재 등급</span>}
+                  </div>
+                );
+              })}
             </div>
           </div>
 
@@ -363,6 +377,62 @@ export default function ProfileModal({ isOpen, onClose }) {
           padding: 0.45rem 0.65rem;
           border-radius: 8px;
           border: 1px solid #F1F5F9;
+        }
+
+        /* 6단계 등급 체계 스타일 */
+        .levels-tier-section {
+          background: white;
+          border: 1px solid var(--border);
+          border-radius: 12px;
+          padding: 1rem;
+        }
+        .levels-tier-grid {
+          display: grid;
+          grid-template-columns: repeat(3, 1fr);
+          gap: 0.5rem;
+        }
+        .level-tier-pill {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          background: #F8FAFC;
+          border: 1px solid #E2E8F0;
+          border-radius: 8px;
+          padding: 0.5rem;
+          position: relative;
+        }
+        .level-tier-pill.current {
+          background: #FFF2E8;
+          border-color: #FF6F0F;
+          box-shadow: 0 0 0 1px #FF6F0F;
+        }
+        .lvl-icon {
+          font-size: 1.25rem;
+        }
+        .lvl-info {
+          display: flex;
+          flex-direction: column;
+          line-height: 1.2;
+        }
+        .lvl-name {
+          font-size: 0.8rem;
+          font-weight: 700;
+          color: #1E293B;
+        }
+        .lvl-range {
+          font-size: 0.72rem;
+          color: #64748B;
+        }
+        .lvl-now-badge {
+          position: absolute;
+          top: -6px;
+          right: 6px;
+          background: #FF6F0F;
+          color: #FFF;
+          font-size: 0.65rem;
+          font-weight: 800;
+          padding: 1px 5px;
+          border-radius: 4px;
         }
         .boost-badge {
           background: #FEF3C7;

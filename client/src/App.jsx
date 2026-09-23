@@ -14,6 +14,13 @@ import ProfileModal from './components/ProfileModal';
 import AdminPanel from './components/AdminPanel';
 import AuthModal from './components/AuthModal';
 import NewProjectModal from './components/NewProjectModal';
+import ChallengeView from './components/ChallengeView';
+import BomManager from './components/BomManager';
+import SchematicNotepad from './components/SchematicNotepad';
+import OrderTracker from './components/OrderTracker';
+import WikiView from './components/WikiView';
+import MentoringView from './components/MentoringView';
+import StatsView from './components/StatsView';
 
 function MainApp() {
   const [activeTab, setActiveTab] = useState('dashboard');
@@ -68,6 +75,13 @@ function MainApp() {
         {activeTab === 'calendar' && <CalendarView />}
         {activeTab === 'board' && <BoardView />}
         {activeTab === 'chat' && <ChatView initialDmUserId={targetDmUserId} />}
+        {activeTab === 'challenge' && <ChallengeView />}
+        {activeTab === 'bom' && <BomManager />}
+        {activeTab === 'notepad' && <SchematicNotepad />}
+        {activeTab === 'orders' && <OrderTracker />}
+        {activeTab === 'wiki' && <WikiView />}
+        {activeTab === 'mentoring' && <MentoringView onNavigateToChat={handleNavigateToChat} />}
+        {activeTab === 'stats' && <StatsView />}
         {activeTab === 'admin' && (
           currentUser?.role === 'admin' ? (
             <AdminPanel onNavigateToBoard={() => handleTabChange('board')} />
@@ -98,11 +112,18 @@ function MainApp() {
             <button onClick={() => setActiveTab('workspace')}>작업실</button>
             <button onClick={() => setActiveTab('tools')}>설계 계산기</button>
             <button onClick={() => setActiveTab('gerber')}>거버 뷰어</button>
+            <button onClick={() => setActiveTab('notepad')}>회로 스케치</button>
+            <button onClick={() => setActiveTab('bom')}>BOM 관리</button>
+            <button onClick={() => setActiveTab('orders')}>발주 트래커</button>
             <button onClick={() => setActiveTab('market')}>나눔 & 공구</button>
             <button onClick={() => setActiveTab('equipment')}>공유 장비</button>
             <button onClick={() => setActiveTab('calendar')}>모임 일정</button>
             <button onClick={() => setActiveTab('board')}>커뮤니티</button>
             <button onClick={() => setActiveTab('chat')}>실시간 채팅</button>
+            <button onClick={() => setActiveTab('challenge')}>챌린지</button>
+            <button onClick={() => setActiveTab('wiki')}>지식 위키</button>
+            <button onClick={() => setActiveTab('mentoring')}>멘토링</button>
+            <button onClick={() => setActiveTab('stats')}>활동 통계</button>
             <button onClick={() => setIsAuthModalOpen(true)}>계정 전환 / 등록</button>
           </div>
           <div className="footer-copy">

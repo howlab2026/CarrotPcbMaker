@@ -7,6 +7,24 @@ export const BADGES_METADATA = {
   sos_detective: { id: 'sos_detective', name: '회로 SOS 명탐정 💡', desc: '회원들의 난해한 하드웨어 버그를 해결 채택받음', color: '#EC4899' }
 };
 
+// 레벨 시스템 — 납땜 온도 기반 6단계 등급
+export const LEVEL_SYSTEM = [
+  { level: 1, title: '🌱 새싹 메이커', minTemp: 36.5, maxTemp: 39.9, color: '#059669', icon: '🌱' },
+  { level: 2, title: '🔥 납땜 견습생', minTemp: 40.0, maxTemp: 49.9, color: '#F59E0B', icon: '🔥' },
+  { level: 3, title: '⚡ 회로 장인', minTemp: 50.0, maxTemp: 64.9, color: '#3B82F6', icon: '⚡' },
+  { level: 4, title: '💎 아트웍 대가', minTemp: 65.0, maxTemp: 79.9, color: '#8B5CF6', icon: '💎' },
+  { level: 5, title: '👑 PCB 마스터', minTemp: 80.0, maxTemp: 94.9, color: '#DC2626', icon: '👑' },
+  { level: 6, title: '🏆 전설의 납땜러', minTemp: 95.0, maxTemp: 99.9, color: '#B91C1C', icon: '🏆' }
+];
+
+export function getUserLevel(temp) {
+  const t = Number(temp || 36.5);
+  for (let i = LEVEL_SYSTEM.length - 1; i >= 0; i--) {
+    if (t >= LEVEL_SYSTEM[i].minTemp) return LEVEL_SYSTEM[i];
+  }
+  return LEVEL_SYSTEM[0];
+}
+
 export const INITIAL_MOCK_DATA = {
   users: [
     {
@@ -409,5 +427,342 @@ export const INITIAL_MOCK_DATA = {
     }
   ],
 
-  directMessages: []
+  directMessages: [],
+
+  // 알림 센터
+  notifications: [
+    {
+      id: 'notif_1',
+      userId: 'usr_admin',
+      type: 'comment',
+      title: '새 댓글',
+      message: '아트웍요정님이 당근 키패드 프로젝트에 댓글을 달았습니다.',
+      targetType: 'project',
+      targetId: 'prj_1',
+      isRead: false,
+      createdAt: '2026-09-22T08:00:00.000Z'
+    },
+    {
+      id: 'notif_2',
+      userId: 'usr_admin',
+      type: 'like',
+      title: '좋아요',
+      message: '메이커꿈나무님이 당신의 공지사항 글을 좋아합니다.',
+      targetType: 'post',
+      targetId: 'post_1',
+      isRead: false,
+      createdAt: '2026-09-22T07:30:00.000Z'
+    },
+    {
+      id: 'notif_3',
+      userId: 'usr_admin',
+      type: 'market_join',
+      title: '공구 참여',
+      message: '메이커꿈나무님이 칩저항 공구에 참여했습니다.',
+      targetType: 'market',
+      targetId: 'mkt_2',
+      isRead: true,
+      createdAt: '2026-09-21T16:00:00.000Z'
+    },
+    {
+      id: 'notif_4',
+      userId: 'usr_admin',
+      type: 'event_reminder',
+      title: '밋업 D-3',
+      message: '9월 SMD 납땜 워크숍이 3일 후에 시작됩니다!',
+      targetType: 'event',
+      targetId: 'evt_1',
+      isRead: true,
+      createdAt: '2026-09-23T09:00:00.000Z'
+    },
+    {
+      id: 'notif_5',
+      userId: 'usr_circuit',
+      type: 'sos_accepted',
+      title: 'SOS 채택 🎉',
+      message: '메이커꿈나무님이 당신의 SOS 답변을 채택했습니다! 온도 +1.5℃',
+      targetType: 'post',
+      targetId: 'post_sos_1',
+      isRead: false,
+      createdAt: '2026-09-20T12:10:00.000Z'
+    },
+    {
+      id: 'notif_6',
+      userId: 'usr_rookie',
+      type: 'comment',
+      title: '새 댓글',
+      message: '회로도장인님이 SOS 글에 해결책을 달았습니다.',
+      targetType: 'post',
+      targetId: 'post_sos_1',
+      isRead: true,
+      createdAt: '2026-09-20T11:30:00.000Z'
+    }
+  ],
+
+  // 주간 챌린지
+  challenges: [
+    {
+      id: 'chal_1',
+      title: '🏆 가장 작은 면적의 ESP32 보드 설계 챌린지',
+      description: 'ESP32-C3 또는 S3 기반으로 가능한 한 작은 면적의 완전 동작 가능한 PCB를 설계해보세요! USB-C, 전원 레귤레이터, GPIO 최소 4핀 브레이크아웃 필수.',
+      rules: '1. ESP32 시리즈 MCU 사용 필수\n2. USB Type-C 커넥터 포함\n3. 전원 레귤레이터 내장\n4. 최소 GPIO 4핀 브레이크아웃\n5. KiCad 또는 Altium 설계 파일 제출',
+      prize: '납땜 온도 +3℃, 🏆 챌린지 우승자 뱃지',
+      startDate: '2026-09-20',
+      endDate: '2026-10-04',
+      status: 'active',
+      createdBy: 'usr_admin',
+      submissions: [
+        {
+          id: 'sub_1',
+          userId: 'usr_artwork',
+          userName: '아트웍요정',
+          userAvatar: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=150&q=80',
+          title: '🥕 당근 모양 초미니 ESP32-C3 (18mm x 24mm)',
+          description: '당근 실루엣 외곽선으로 커팅한 초미니 ESP32-C3 보드. 4층 기판으로 면적 최소화.',
+          image: 'https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80',
+          votes: 8,
+          votedUsers: ['usr_admin', 'usr_circuit', 'usr_rookie'],
+          createdAt: '2026-09-22T10:00:00.000Z'
+        },
+        {
+          id: 'sub_2',
+          userId: 'usr_circuit',
+          userName: '회로도장인',
+          userAvatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&q=80',
+          title: '극한 미니멀 ESP32-S3 (20mm x 22mm)',
+          description: '0201 사이즈 수동소자와 QFN 패키지만 사용하여 극한으로 줄인 설계.',
+          image: 'https://images.unsplash.com/photo-1550751827-4bd374c3f58b?auto=format&fit=crop&w=800&q=80',
+          votes: 5,
+          votedUsers: ['usr_admin', 'usr_artwork'],
+          createdAt: '2026-09-23T08:00:00.000Z'
+        }
+      ],
+      createdAt: '2026-09-20T00:00:00.000Z'
+    },
+    {
+      id: 'chal_2',
+      title: '🎨 가장 아름다운 아트웍 PCB 디자인 콘테스트',
+      description: '기능보다 예술! 실크스크린, 동박 아트, 외곽선 커팅 등을 활용하여 가장 아름다운 기판을 설계해보세요.',
+      rules: '1. 2층 이상 PCB\n2. 실크스크린 아트 또는 동박 아트 포함\n3. 실제 제작 가능한 설계일 것',
+      prize: '납땜 온도 +3℃, 🎨 아트 마스터 뱃지',
+      startDate: '2026-10-01',
+      endDate: '2026-10-15',
+      status: 'upcoming',
+      createdBy: 'usr_admin',
+      submissions: [],
+      createdAt: '2026-09-22T00:00:00.000Z'
+    }
+  ],
+
+  // BOM 관리
+  bomItems: [
+    {
+      id: 'bom_1',
+      projectId: 'prj_1',
+      userId: 'usr_artwork',
+      title: '당근 키패드 BOM',
+      items: [
+        { partNumber: 'RP2040', name: 'RP2040 MCU', quantity: 1, unitPrice: 0.80, currency: 'USD', supplier: 'LCSC', footprint: 'QFN-56' },
+        { partNumber: 'W25Q16JV', name: '16Mbit NOR Flash', quantity: 1, unitPrice: 0.35, currency: 'USD', supplier: 'LCSC', footprint: 'SOIC-8' },
+        { partNumber: 'USB4110-GF-A', name: 'USB Type-C 16P', quantity: 1, unitPrice: 0.45, currency: 'USD', supplier: 'LCSC', footprint: 'SMD' },
+        { partNumber: 'AMS1117-3.3', name: '3.3V LDO 1A', quantity: 1, unitPrice: 0.12, currency: 'USD', supplier: 'LCSC', footprint: 'SOT-223' },
+        { partNumber: 'RC0603FR-07100RL', name: '100Ω 0603 1%', quantity: 4, unitPrice: 0.002, currency: 'USD', supplier: 'LCSC', footprint: '0603' },
+        { partNumber: 'CC0603KRX7R8BB104', name: '100nF MLCC 0603', quantity: 8, unitPrice: 0.005, currency: 'USD', supplier: 'LCSC', footprint: '0603' },
+        { partNumber: 'WS2812B-2020', name: 'RGB LED 2020', quantity: 4, unitPrice: 0.08, currency: 'USD', supplier: 'LCSC', footprint: '2020' },
+        { partNumber: 'CPG151101S05', name: '기계식 스위치 소켓', quantity: 4, unitPrice: 0.15, currency: 'USD', supplier: 'LCSC', footprint: 'THT' }
+      ],
+      exchangeRate: 1350,
+      createdAt: '2026-09-21T10:00:00.000Z'
+    }
+  ],
+
+  // Mock 부품 가격 데이터베이스
+  partsDatabase: [
+    { partNumber: 'RP2040', name: 'RP2040 Dual-core ARM Cortex-M0+ MCU', category: 'MCU', prices: { LCSC: 0.80, DigiKey: 1.00, Mouser: 0.95 } },
+    { partNumber: 'ESP32-C3-WROOM-02', name: 'ESP32-C3 WiFi+BLE Module', category: 'MCU', prices: { LCSC: 1.85, DigiKey: 2.50, Mouser: 2.30 } },
+    { partNumber: 'STM32F407VGT6', name: 'STM32F4 168MHz ARM MCU', category: 'MCU', prices: { LCSC: 5.20, DigiKey: 8.50, Mouser: 7.80 } },
+    { partNumber: 'AMS1117-3.3', name: '3.3V LDO Regulator 1A', category: 'Power', prices: { LCSC: 0.12, DigiKey: 0.45, Mouser: 0.38 } },
+    { partNumber: 'TPS63020', name: 'Buck-Boost Converter 96%', category: 'Power', prices: { LCSC: 2.10, DigiKey: 3.80, Mouser: 3.50 } },
+    { partNumber: 'W25Q16JV', name: '16Mbit SPI NOR Flash', category: 'Memory', prices: { LCSC: 0.35, DigiKey: 0.65, Mouser: 0.55 } },
+    { partNumber: 'USB4110-GF-A', name: 'USB Type-C 16Pin SMD', category: 'Connector', prices: { LCSC: 0.45, DigiKey: 0.90, Mouser: 0.75 } },
+    { partNumber: 'RC0603FR-07100RL', name: '100Ω 0603 1% Resistor', category: 'Passive', prices: { LCSC: 0.002, DigiKey: 0.01, Mouser: 0.008 } },
+    { partNumber: 'CC0603KRX7R8BB104', name: '100nF 0603 MLCC', category: 'Passive', prices: { LCSC: 0.005, DigiKey: 0.02, Mouser: 0.015 } },
+    { partNumber: 'WS2812B-2020', name: 'RGB Addressable LED 2020', category: 'LED', prices: { LCSC: 0.08, DigiKey: 0.25, Mouser: 0.20 } }
+  ],
+
+  // 기판 발주 트래커
+  orders: [
+    {
+      id: 'ord_1',
+      userId: 'usr_admin',
+      title: '당근 키패드 v1.2 메인보드',
+      manufacturer: 'JLCPCB',
+      orderNumber: 'JLC-20260922-8921',
+      layers: 4,
+      quantity: 5,
+      hasSmt: true,
+      cost: 42.50,
+      currency: 'USD',
+      status: 'production', // placed, production, smt, shipping, delivered
+      trackingNumber: '',
+      orderedAt: '2026-09-21',
+      estimatedDelivery: '2026-09-28',
+      notes: '매트 블랙 마스크 + ENIG 도금 적용'
+    },
+    {
+      id: 'ord_2',
+      userId: 'usr_admin',
+      title: 'ESP32-S3 AIoT 환경 센서 모듈',
+      manufacturer: 'PCBWay',
+      orderNumber: 'W-98234-KR',
+      layers: 2,
+      quantity: 10,
+      hasSmt: false,
+      cost: 28.00,
+      currency: 'USD',
+      status: 'shipping',
+      trackingNumber: 'DHL-9842103492',
+      orderedAt: '2026-09-16',
+      estimatedDelivery: '2026-09-24',
+      notes: '통관 완료 후 배송 출발'
+    },
+    {
+      id: 'ord_3',
+      userId: 'usr_artwork',
+      title: '초미니 기계식 스위치 테스터 기판',
+      manufacturer: 'JLCPCB',
+      orderNumber: 'JLC-20260910-1123',
+      layers: 2,
+      quantity: 20,
+      hasSmt: false,
+      cost: 15.00,
+      currency: 'USD',
+      status: 'delivered',
+      trackingNumber: 'CJ-6421098421',
+      orderedAt: '2026-09-10',
+      estimatedDelivery: '2026-09-18',
+      notes: '수령 완료 및 1차 조립 성공'
+    },
+    {
+      id: 'ord_4',
+      userId: 'usr_circuit',
+      title: '고속 차동신호 임피던스 매칭 테스트 기판',
+      manufacturer: 'JLCPCB',
+      orderNumber: 'JLC-20260923-0041',
+      layers: 4,
+      quantity: 5,
+      hasSmt: true,
+      cost: 65.00,
+      currency: 'USD',
+      status: 'placed',
+      trackingNumber: '',
+      orderedAt: '2026-09-23',
+      estimatedDelivery: '2026-10-02',
+      notes: '거버 검토 통과 후 생산 대기중'
+    }
+  ],
+
+  // 지식 위키 문서
+  wikiArticles: [
+    {
+      id: 'wiki_1',
+      title: 'KiCad 8.0 기초: DRC 에러 완벽 해결 가이드',
+      category: '설계 기초',
+      tags: ['KiCad', 'DRC', '초보'],
+      authorName: '당근마스터',
+      views: 342,
+      likes: 28,
+      updatedAt: '2026-09-20',
+      content: `## 📌 DRC(Design Rules Check)란?
+기판을 실제로 제조하기 전에, 선 폭(Track Width), 이격 거리(Clearance), 비아 홀 직경 등이 제조사의 가공 한계를 만족하는지 검사하는 필수 절차입니다.
+
+### 1. Clearance Violation (이격 거리 위반)
+- **원인**: 트레이스와 패드, 또는 비아 간의 거리가 설정한 최소 간격(예: 0.127mm / 5mil)보다 좁음
+- **해결책**:
+  1. 기판 설정(Board Setup)에서 제조사(JLCPCB 등)의 최소 이격 사양 확인
+  2. 트레이스 라우팅 시 '밀어내기(Push and Shove)' 모드 활성화
+
+### 2. Unconnected Items (미연결 네트)
+- **원인**: 래츠네스트(Ratsnest) 선이 남아있거나 GND 플레인이 분리되어 섬(Island)이 생김
+- **해결책**: 구리 채우기(Zone Fill, B키)를 다시 누르고 끊어진 GND에 스티칭 비아(Stitching Via) 추가
+
+### 3. Track Width Too Small (선 폭 과소)
+- 전원선(VCC)은 최소 0.4mm~0.8mm 이상, 일반 신호선은 0.2mm~0.25mm 권장`
+    },
+    {
+      id: 'wiki_2',
+      title: '초보자를 위한 JLCPCB 기판 발주 & SMT 실장 총정리',
+      category: '발주 가이드',
+      tags: ['JLCPCB', '발주', 'SMT', '거버'],
+      authorName: '회로도장인',
+      views: 521,
+      likes: 45,
+      updatedAt: '2026-09-21',
+      content: `## 🚀 JLCPCB 해외 발주 A to Z
+해외 기판 제조사를 처음 이용하시는 메이커분들을 위한 실전 체크리스트입니다.
+
+### 필수 제출 파일 3종
+1. **Gerber ZIP**: 드릴 파일(Excellon) 포함 거버 압축 파일
+2. **BOM (CSV)**: LCSC 파트넘버(Cxxxx) 기재
+3. **CPL / Centroid (CSV)**: 부품의 X, Y 좌표 및 각도(Rotation)
+
+### 자주 발생하는 부품 회전(Rotation) 오류
+- IC나 다이오드의 1번 핀 방향이 180도 또는 90도 돌아가는 현상
+- **해결법**: 주문 페이지의 DFM 뷰어에서 3D 미리보기를 반드시 눈으로 하나하나 확인하고 각도 보정!`
+    },
+    {
+      id: 'wiki_3',
+      title: 'SMD 미세 피치(0603 / QFN) 핸드 솔더링 꿀팁',
+      category: '납땜 팁',
+      tags: ['SMD', '납땜', '플럭스', '인두기'],
+      authorName: '아트웍요정',
+      views: 418,
+      likes: 39,
+      updatedAt: '2026-09-22',
+      content: `## 🔥 무연납 시대의 현명한 인두기 사용법
+0603 수동소자와 리드 없는 QFN 패키지 납땜을 마스터해봅시다!
+
+### 핵심 준비물
+- **플럭스(Flux)**: 젤 타입 무세척(No-Clean) 플럭스 필수
+- **칼팁(K-Tip)** 인두기 팁
+- 솔더위크(Solder Wick) & 솔더 페이스트
+
+### QFN 납땜 3단계
+1. 한쪽 코너 핀을 먼저 납으로 가고정
+2. 플럭스를 듬뿍 바른 후 인두기 팁에 소량의 납을 묻혀 드래그 솔더링
+3. 중앙 Thermal Pad는 뒷면 스루홀 비아를 통해 납을 주입하거나 열풍기(Hot Air) 사용`
+    }
+  ],
+
+  // 멘토링 매칭
+  mentoringSessions: [
+    {
+      id: 'mentor_1',
+      mentorId: 'usr_admin',
+      mentorName: '당근마스터',
+      mentorTemp: 82.5,
+      mentorTags: ['고속신호', '4층기판', 'KiCad'],
+      status: 'active', // active, completed
+      title: 'KiCad 기반 고속 차동신호(USB/Ethernet) 아트웍 멘토링',
+      menteeId: 'usr_rookie',
+      menteeName: '메이커꿈나무',
+      message: 'USB Type-C 신호선 90옴 차동 임피던스 맞추는 방법 멘토링 진행중',
+      sessionsCount: 3,
+      createdAt: '2026-09-18'
+    },
+    {
+      id: 'mentor_2',
+      mentorId: 'usr_circuit',
+      mentorName: '회로도장인',
+      mentorTemp: 68.0,
+      mentorTags: ['전원설계', '노이즈대책', '노이즈필터'],
+      status: 'recruiting',
+      title: '스위칭 레귤레이터(SMPS) 전원 노이즈 저감 1:1 멘토링',
+      menteeId: null,
+      menteeName: null,
+      message: '벅 컨버터 인덕터 배치와 그라운드 루프 최소화 노하우 전수합니다.',
+      sessionsCount: 0,
+      createdAt: '2026-09-22'
+    }
+  ]
 };

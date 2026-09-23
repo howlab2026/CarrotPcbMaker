@@ -30,6 +30,34 @@ export function getLocalStore() {
           }
         });
       }
+      // Backfill notifications
+      if (!parsed.notifications) {
+        parsed.notifications = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.notifications || []));
+      }
+      // Backfill challenges
+      if (!parsed.challenges) {
+        parsed.challenges = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.challenges || []));
+      }
+      // Backfill bomItems
+      if (!parsed.bomItems) {
+        parsed.bomItems = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.bomItems || []));
+      }
+      // Backfill partsDatabase
+      if (!parsed.partsDatabase) {
+        parsed.partsDatabase = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.partsDatabase || []));
+      }
+      // Backfill orders
+      if (!parsed.orders) {
+        parsed.orders = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.orders || []));
+      }
+      // Backfill wikiArticles
+      if (!parsed.wikiArticles) {
+        parsed.wikiArticles = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.wikiArticles || []));
+      }
+      // Backfill mentoringSessions
+      if (!parsed.mentoringSessions) {
+        parsed.mentoringSessions = JSON.parse(JSON.stringify(INITIAL_MOCK_DATA.mentoringSessions || []));
+      }
       return parsed;
     }
   } catch (e) {
@@ -584,6 +612,258 @@ export function initMockApi() {
 
       saveLocalStore(store);
       return jsonResponse(newEquipment, 201);
+    }
+
+    // 10. Notifications (알림)
+    if (pathname === '/api/notifications' && method === 'GET') {
+      const userId = query.userId;
+      let list = store.notifications || [];
+      if (userId) {
+        list = list.filter(n => n.userId === userId);
+      }
+      list.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      return jsonResponse(list);
+    }
+
+    if (pathname === '/api/notifications/read-all' && method === 'PUT') {
+      const userId = body?.userId;
+      (store.notifications || []).forEach(n => {
+        if (n.userId === userId) n.isRead = true;
+      });
+      saveLocalStore(store);
+      return jsonResponse({ message: 'All read' });
+    }
+
+    const notifReadMatch = pathname.match(/^\/api\/notifications\/([^/]+)\/read$/);
+    if (notifReadMatch && method === 'PUT') {
+      const notifId = notifReadMatch[1];
+      const notif = (store.notifications || []).find(n => n.id === notifId);
+      if (notif) {
+        notif.isRead = true;
+        saveLocalStore(store);
+      }
+      return jsonResponse({ message: 'Read' });
+    }
+
+    // 11. Challenges (주간 챌린지)
+    if (pathname === '/api/challenges' && method === 'GET') {
+      return jsonResponse(store.challenges || []);
+    }
+
+    if (pathname === '/api/challenges' && method === 'POST') {
+      const newChallenge = {
+        id: `chal_${Date.now()}`,
+        ...body,
+        submissions: [],
+        createdAt: new Date().toISOString()
+      };
+      store.challenges = store.challenges || [];
+      store.challenges.unshift(newChallenge);
+      saveLocalStore(store);
+      return jsonResponse(newChallenge, 201);
+    }
+
+    const chalSubmitMatch = pathname.match(/^\/api\/challenges\/([^/]+)\/submit$/);
+    if (chalSubmitMatch && method === 'POST') {
+      const chalId = chalSubmitMatch[1];
+      const challenge = (store.challenges || []).find(c => c.id === chalId);
+      if (!challenge) return jsonResponse({ error: 'Not found' }, 404);
+      const submission = {
+        id: `sub_${Date.now()}`,
+        ...body,
+        votes: 0,
+        votedUsers: [],
+        createdAt: new Date().toISOString()
+      };
+      challenge.submissions.push(submission);
+      saveLocalStore(store);
+      return jsonResponse(submission, 201);
+    }
+
+    const chalVoteMatch = pathname.match(/^\/api\/challenges\/([^/]+)\/vote\/([^/]+)$/);
+    if (chalVoteMatch && method === 'POST') {
+      const [, chalId, subId] = chalVoteMatch;
+      const challenge = (store.challenges || []).find(c => c.id === chalId);
+      if (!challenge) return jsonResponse({ error: 'Not found' }, 404);
+      const submission = challenge.submissions.find(s => s.id === subId);
+      if (!submission) return jsonResponse({ error: 'Submission not found' }, 404);
+      const userId = body?.userId;
+      const voteIdx = submission.votedUsers.indexOf(userId);
+      if (voteIdx === -1) {
+        submission.votedUsers.push(userId);
+        submission.votes += 1;
+      } else {
+        submission.votedUsers.splice(voteIdx, 1);
+        submission.votes = Math.max(0, submission.votes - 1);
+      }
+      saveLocalStore(store);
+      return jsonResponse(submission);
+    }
+
+    // 12. BOM 관리
+    if (pathname === '/api/bom' && method === 'GET') {
+      let list = store.bomItems || [];
+      if (query.userId) {
+        list = list.filter(b => b.userId === query.userId);
+      }
+      if (query.projectId) {
+        list = list.filter(b => b.projectId === query.projectId);
+      }
+      return jsonResponse(list);
+    }
+
+    if (pathname === '/api/bom' && method === 'POST') {
+      const newBom = {
+        id: `bom_${Date.now()}`,
+        ...body,
+        createdAt: new Date().toISOString()
+      };
+      store.bomItems = store.bomItems || [];
+      store.bomItems.unshift(newBom);
+      saveLocalStore(store);
+      return jsonResponse(newBom, 201);
+    }
+
+    const bomDetailMatch = pathname.match(/^\/api\/bom\/([^/]+)$/);
+    if (bomDetailMatch) {
+      const bomId = bomDetailMatch[1];
+      const idx = (store.bomItems || []).findIndex(b => b.id === bomId);
+      if (idx === -1) return jsonResponse({ error: 'Not found' }, 404);
+      if (method === 'PUT') {
+        store.bomItems[idx] = { ...store.bomItems[idx], ...body };
+        saveLocalStore(store);
+        return jsonResponse(store.bomItems[idx]);
+      }
+      if (method === 'DELETE') {
+        store.bomItems.splice(idx, 1);
+        saveLocalStore(store);
+        return jsonResponse({ message: 'Deleted' });
+      }
+    }
+
+    // 13. Parts Database Search (부품 검색)
+    if (pathname === '/api/parts/search' && method === 'GET') {
+      const db = store.partsDatabase || [];
+      let results = db;
+      if (query.q) {
+        const q = query.q.toLowerCase();
+        results = db.filter(p => p.partNumber.toLowerCase().includes(q) || p.name.toLowerCase().includes(q));
+      }
+      if (query.category && query.category !== 'all') {
+        results = results.filter(p => p.category === query.category);
+      }
+      return jsonResponse(results);
+    }
+
+    // 14. Orders (기판 발주 트래커)
+    if (pathname === '/api/orders' && method === 'GET') {
+      let list = store.orders || [];
+      if (query.userId) {
+        list = list.filter(o => o.userId === query.userId);
+      }
+      if (query.status && query.status !== 'all') {
+        list = list.filter(o => o.status === query.status);
+      }
+      return jsonResponse(list);
+    }
+
+    if (pathname === '/api/orders' && method === 'POST') {
+      const newOrder = {
+        id: `ord_${Date.now()}`,
+        ...body,
+        orderedAt: body.orderedAt || new Date().toISOString().split('T')[0]
+      };
+      store.orders = store.orders || [];
+      store.orders.unshift(newOrder);
+      saveLocalStore(store);
+      return jsonResponse(newOrder, 201);
+    }
+
+    const orderDetailMatch = pathname.match(/^\/api\/orders\/([^/]+)$/);
+    if (orderDetailMatch) {
+      const ordId = orderDetailMatch[1];
+      const idx = (store.orders || []).findIndex(o => o.id === ordId);
+      if (idx === -1) return jsonResponse({ error: 'Order not found' }, 404);
+      if (method === 'PUT') {
+        store.orders[idx] = { ...store.orders[idx], ...body };
+        saveLocalStore(store);
+        return jsonResponse(store.orders[idx]);
+      }
+      if (method === 'DELETE') {
+        store.orders.splice(idx, 1);
+        saveLocalStore(store);
+        return jsonResponse({ message: 'Order deleted' });
+      }
+    }
+
+    // 15. Wiki Articles (지식 위키)
+    if (pathname === '/api/wiki' && method === 'GET') {
+      let list = store.wikiArticles || [];
+      if (query.category && query.category !== 'all') {
+        list = list.filter(a => a.category === query.category);
+      }
+      if (query.search) {
+        const s = query.search.toLowerCase();
+        list = list.filter(a => a.title.toLowerCase().includes(s) || a.content.toLowerCase().includes(s) || (a.tags && a.tags.some(t => t.toLowerCase().includes(s))));
+      }
+      return jsonResponse(list);
+    }
+
+    if (pathname === '/api/wiki' && method === 'POST') {
+      const newArticle = {
+        id: `wiki_${Date.now()}`,
+        views: 1,
+        likes: 0,
+        updatedAt: new Date().toISOString().split('T')[0],
+        ...body
+      };
+      store.wikiArticles = store.wikiArticles || [];
+      store.wikiArticles.unshift(newArticle);
+      saveLocalStore(store);
+      return jsonResponse(newArticle, 201);
+    }
+
+    const wikiDetailMatch = pathname.match(/^\/api\/wiki\/([^/]+)$/);
+    if (wikiDetailMatch) {
+      const articleId = wikiDetailMatch[1];
+      const idx = (store.wikiArticles || []).findIndex(a => a.id === articleId);
+      if (idx === -1) return jsonResponse({ error: 'Article not found' }, 404);
+      if (method === 'PUT') {
+        store.wikiArticles[idx] = { ...store.wikiArticles[idx], ...body, updatedAt: new Date().toISOString().split('T')[0] };
+        saveLocalStore(store);
+        return jsonResponse(store.wikiArticles[idx]);
+      }
+    }
+
+    // 16. Mentoring Sessions (멘토링 매칭)
+    if (pathname === '/api/mentoring' && method === 'GET') {
+      return jsonResponse(store.mentoringSessions || []);
+    }
+
+    if (pathname === '/api/mentoring' && method === 'POST') {
+      const newSession = {
+        id: `mentor_${Date.now()}`,
+        status: 'recruiting',
+        sessionsCount: 0,
+        createdAt: new Date().toISOString().split('T')[0],
+        ...body
+      };
+      store.mentoringSessions = store.mentoringSessions || [];
+      store.mentoringSessions.unshift(newSession);
+      saveLocalStore(store);
+      return jsonResponse(newSession, 201);
+    }
+
+    const mentorDetailMatch = pathname.match(/^\/api\/mentoring\/([^/]+)$/);
+    if (mentorDetailMatch) {
+      const mId = mentorDetailMatch[1];
+      const idx = (store.mentoringSessions || []).findIndex(m => m.id === mId);
+      if (idx === -1) return jsonResponse({ error: 'Session not found' }, 404);
+      if (method === 'PUT') {
+        store.mentoringSessions[idx] = { ...store.mentoringSessions[idx], ...body };
+        saveLocalStore(store);
+        return jsonResponse(store.mentoringSessions[idx]);
+      }
     }
 
     // Default fallback
